@@ -8,10 +8,14 @@
 
 enum class Condition : char
 {
+  Empty,
   Susceptible,
   Removed,
-  Infected
+  Infected,
+  Wall
 };
+
+constexpr Condition wall = Condition::Wall;
 
 class World
 {
@@ -43,20 +47,23 @@ public:
 
   Condition const &condition(int r, int c) const noexcept
   {
-    auto const i = (r + m_size) % m_size;
-    auto const j = (c + m_size) % m_size;
-    assert(i >= 0 && i < m_size && j >= 0 && j < m_size);
-    auto const index = i * m_size + j;
+    if ( r < 0 || c < 0 || r > m_size || c > m_size ) {
+      return wall;
+    }
+    //auto const i = (r + m_size) % m_size;
+    //auto const j = (c + m_size) % m_size;
+    //assert(i >= 0 && i < m_size && j >= 0 && j < m_size);
+    auto const index = r* m_size + c;
     assert(index >= 0 && index < static_cast<int>(m_grid.size()));
     return m_grid[index];
   }
 
   Condition &condition(int r, int c) noexcept
   {
-    auto const i = (r + m_size) % m_size;
-    auto const j = (c + m_size) % m_size;
-    assert(i >= 0 && i < m_size && j >= 0 && j < m_size);
-    auto const index = i * m_size + j;
+    //auto const i = (r + m_size) % m_size;
+    //auto const j = (c + m_size) % m_size;
+    assert(r >= 0 && r < m_size && c >= 0 && c < m_size);
+    auto const index = r * m_size + c;
     assert(index >= 0 && index < static_cast<int>(m_grid.size()));
     return m_grid[index];
   }
@@ -67,19 +74,20 @@ public:
   }
 };
 
-inline int neighbours_infected(World const &world, int r, int c)
+template < Condition C >
+inline int neighbours(World const &world, int r, int c)
 {
   int result = 0;
   for (int row = -1; row != 2; ++row)
   {
     for (int column = -1; column != 2; ++column)
     {
-      if (world.condition(r + row, c + column) == Condition::Infected)
+      if (world.condition(r + row, c + column) == C )
       {
         ++result;
       }
     }
-    if (world.condition(r, c) == Condition::Infected)
+    if (world.condition(r, c) == C )
     {
       return result - 1;
     }
@@ -90,14 +98,38 @@ inline int neighbours_infected(World const &world, int r, int c)
   }
 }
 
+
 inline bool probability(double prob)
 {
   std::default_random_engine gen{std::random_device{}()};
   std::uniform_real_distribution<double> dist(0., 1.);
   double exitus = dist(gen);
-  if (prob == 0.)
+  if(prob == 0.)
     return false;
   return exitus <= prob;
+}
+
+inline void move_cell ( World& next,  int r, int c) {
+short int empty_cells = neighbours <Condition::Empty> (next, r, c);
+if (empty_cells == 0 || next.condition(r,c) == Condition::Empty ) { return; }
+std::default_random_engine gen{std::random_device{}()};
+std::uniform_int_distribution< short int > dist(0 , empty_cells);
+short int exitus = dist(gen);
+if (exitus == 0) { return; }
+int count_empty = 0, row = -1, column = -1;
+for (; row != 2 && count_empty != exitus; ++row)
+  {
+    for ( column = -1; column != 2 && count_empty != exitus; ++column)
+    {
+      if ( next.condition(r + row, c + column) == Condition::Empty )
+      {
+        ++count_empty;
+      }
+    }
+    
+  }
+next.condition(r+row, c+column) = next.condition(r,c);
+next.condition(r,c) = Condition::Empty;
 }
 
 inline World evolve(World const &current)
@@ -119,10 +151,10 @@ inline World evolve(World const &current)
       }
       else if (current.condition(r, c) == Condition::Susceptible)
       {
-        int n_infected = neighbours_infected(current, r, c);
-        double beta0 = beta * (7) / (16.);
-        //double beta_bis = 1 - pow((1 - beta0), n_infected);
-        double beta_bis = beta * n_infected / 8.;
+          //da studiare
+        int n_infected = neighbours<Condition::Infected> (current, r, c);
+        //double beta0 = beta*(7./16.);
+        double beta_bis = beta * (n_infected/8.);
         if (probability(beta_bis))
         {
           next.condition(r, c) = Condition::Infected;
@@ -132,6 +164,9 @@ inline World evolve(World const &current)
   }
   return next;
 }
+
+
+
 void WriteText(sf::RenderWindow &window, const std::string &string, short pos_x, short pos_y)
 {
   sf::Font font;
