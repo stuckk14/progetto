@@ -2,6 +2,7 @@
 #include <cassert>
 #include <random>
 #include <cmath>
+#include <algorithm>
 #include <SFML/Graphics.hpp>
 
 //Classe automa cellulare, cella piena, evoluzione probabilistica con numeri casuali.
@@ -45,6 +46,16 @@ public:
     return m_size;
   }
 
+  auto begin_iterator() const {
+    auto it = m_grid.begin();
+    return it;
+  }
+
+  auto end_iterator() const {
+    auto it = m_grid.end();
+    return it;
+  }
+
   Condition const &condition(int r, int c) const noexcept
   {
     if ( r < 0 || c < 0 || r > m_size || c > m_size ) {
@@ -54,7 +65,7 @@ public:
     //auto const j = (c + m_size) % m_size;
     //assert(i >= 0 && i < m_size && j >= 0 && j < m_size);
     auto const index = r* m_size + c;
-    assert(index >= 0 && index < static_cast<int>(m_grid.size()));
+    //assert(index >= 0 && index < static_cast<int>(m_grid.size()));
     return m_grid[index];
   }
 
@@ -72,7 +83,7 @@ public:
   {
     return l.m_grid == r.m_grid;
   }
-};
+};    //FINE DELLA CLASSE!
 
 template < Condition C >
 inline int neighbours(World const &world, int r, int c)
@@ -87,6 +98,7 @@ inline int neighbours(World const &world, int r, int c)
         ++result;
       }
     }
+  }
     if (world.condition(r, c) == C )
     {
       return result - 1;
@@ -96,7 +108,7 @@ inline int neighbours(World const &world, int r, int c)
       return result;
     }
   }
-}
+
 
 
 inline bool probability(double prob)
@@ -109,13 +121,15 @@ inline bool probability(double prob)
   return exitus <= prob;
 }
 
-inline void move_cell ( World& next,  int r, int c) {
+inline void move_cell ( World& next) {
+  for (int r= 0; r!= next.size(); ++r) {
+      for (int c = 0; c!= next.size(); ++c) {
 short int empty_cells = neighbours <Condition::Empty> (next, r, c);
-if (empty_cells == 0 || next.condition(r,c) == Condition::Empty ) { return; }
+if (empty_cells == 0 || next.condition(r,c) == Condition::Empty ) { continue; }
 std::default_random_engine gen{std::random_device{}()};
 std::uniform_int_distribution< short int > dist(0 , empty_cells);
 short int exitus = dist(gen);
-if (exitus == 0) { return; }
+if (exitus == 0) { continue; }
 int count_empty = 0, row = -1, column = -1;
 for (; row != 2 && count_empty != exitus; ++row)
   {
@@ -130,18 +144,21 @@ for (; row != 2 && count_empty != exitus; ++row)
   }
 next.condition(r+row, c+column) = next.condition(r,c);
 next.condition(r,c) = Condition::Empty;
+} 
+}
 }
 
-inline World evolve(World const &current)
+inline World evolve(World& current)
 {
   double beta = current.get_beta(), gamma = current.get_gamma();
   int const N = current.size();
   World next(N, beta, gamma);
+  move_cell(current);
   for (int r = 0; r != N; ++r)
   {
     for (int c = 0; c != N; ++c)
-    {
-      next.condition(r, c) = current.condition(r, c);
+    { 
+      next.condition(r,c) = current.condition(r,c);
       if (current.condition(r, c) == Condition::Infected)
       {
         if (probability(gamma))
