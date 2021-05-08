@@ -13,7 +13,12 @@ enum class Condition : char
   Susceptible,
   Removed,
   Infected,
-  Wall
+  Wall,
+  Booked
+};
+struct from_to
+{
+  int r_f, c_f, r_t, c_t;
 };
 
 constexpr Condition wall = Condition::Wall;
@@ -46,30 +51,33 @@ public:
     return m_size;
   }
 
-  auto begin_iterator() const {
+  auto begin_iterator() const
+  {
     auto it = m_grid.begin();
     return it;
   }
 
-  auto end_iterator() const {
+  auto end_iterator() const
+  {
     auto it = m_grid.end();
     return it;
   }
 
-  Condition const &condition(int r, int c) const noexcept
+  Condition const &getCondition(int r, int c) const noexcept
   {
-    if ( r < 0 || c < 0 || r > m_size || c > m_size ) {
+    if (r < 0 || c < 0 || r >= m_size || c >= m_size)
+    {
       return wall;
     }
     //auto const i = (r + m_size) % m_size;
     //auto const j = (c + m_size) % m_size;
     //assert(i >= 0 && i < m_size && j >= 0 && j < m_size);
-    auto const index = r* m_size + c;
+    auto const index = r * m_size + c;
     //assert(index >= 0 && index < static_cast<int>(m_grid.size()));
     return m_grid[index];
   }
 
-  Condition &condition(int r, int c) noexcept
+  Condition &setCondition(int r, int c) noexcept
   {
     //auto const i = (r + m_size) % m_size;
     //auto const j = (c + m_size) % m_size;
@@ -83,9 +91,9 @@ public:
   {
     return l.m_grid == r.m_grid;
   }
-};    //FINE DELLA CLASSE!
+}; //FINE DELLA CLASSE!
 
-template < Condition C >
+template <Condition C>
 inline int neighbours(World const &world, int r, int c)
 {
   int result = 0;
@@ -93,59 +101,76 @@ inline int neighbours(World const &world, int r, int c)
   {
     for (int column = -1; column != 2; ++column)
     {
-      if (world.condition(r + row, c + column) == C )
+      if (world.getCondition(r + row, c + column) == C)
       {
         ++result;
       }
     }
   }
-    if (world.condition(r, c) == C )
-    {
-      return result - 1;
-    }
-    else
-    {
-      return result;
-    }
+  if (world.getCondition(r, c) == C)
+  {
+    return result - 1;
   }
-
-
+  else
+  {
+    return result;
+  }
+}
 
 inline bool probability(double prob)
 {
   std::default_random_engine gen{std::random_device{}()};
   std::uniform_real_distribution<double> dist(0., 1.);
   double exitus = dist(gen);
-  if(prob == 0.)
+  if (prob == 0.)
     return false;
   return exitus <= prob;
 }
 
-inline void move_cell ( World& next) {
-  for (int r= 0; r!= next.size(); ++r) {
-      for (int c = 0; c!= next.size(); ++c) {
-short int empty_cells = neighbours <Condition::Empty> (next, r, c);
-if (empty_cells == 0 || next.condition(r,c) == Condition::Empty ) { continue; }
-std::default_random_engine gen{std::random_device{}()};
-std::uniform_int_distribution< short int > dist(0 , empty_cells);
-short int exitus = dist(gen);
-if (exitus == 0) { continue; }
-int count_empty = 0, row = -1, column = -1;
-for (; row != 2 && count_empty != exitus; ++row)
+inline void move_cell(World &next)
+{
+  std::vector<from_to> fromTo;
+  for (int r = 0; r != next.size(); ++r)
   {
-    for ( column = -1; column != 2 && count_empty != exitus; ++column)
+    for (int c = 0; c != next.size(); ++c)
     {
-      if ( next.condition(r + row, c + column) == Condition::Empty )
+      short int empty_cells = neighbours<Condition::Empty>(next, r, c);
+      if (empty_cells == 0 || next.getCondition(r, c) == Condition::Empty)
       {
-        ++count_empty;
+        continue;
       }
+      std::default_random_engine gen{std::random_device{}()};
+      std::uniform_int_distribution<short int> dist(0, empty_cells);
+      short int exitus = dist(gen);
+      if (exitus == 0)
+      {
+        continue;
+      }
+
+      int count_empty = 0, row = -1, column = -1;
+      for (; row != 2 && count_empty != exitus; ++row)
+      {
+        for (column = -1; column != 2 && count_empty != exitus; ++column)
+        {
+          if (next.getCondition(r + row, c + column) == Condition::Empty)
+          {
+            ++count_empty;
+          }
+          if (count_empty == exitus)
+            break;
+        }
+        if (count_empty == exitus)
+          break;
+      }
+      next.setCondition(r + row, c + column) = Condition::Booked;
+      fromTo.push_back({r, c, r + row, c + column});
     }
-    
   }
-next.condition(r+row, c+column) = next.condition(r,c);
-next.condition(r,c) = Condition::Empty;
-} 
-}
+  for (int i = 0; i < fromTo.size(); ++i)
+  {
+    next.setCondition(fromTo[i].r_t, fromTo[i].c_t) = next.getCondition(fromTo[i].r_f, fromTo[i].c_f);
+    next.setCondition(fromTo[i].r_f, fromTo[i].c_f) = Condition::Empty;
+  }
 }
 
 inline World evolve(World& current)
@@ -157,32 +182,32 @@ inline World evolve(World& current)
   for (int r = 0; r != N; ++r)
   {
     for (int c = 0; c != N; ++c)
-    { 
-      next.condition(r,c) = current.condition(r,c);
-      if (current.condition(r, c) == Condition::Infected)
+    {
+      next.setCondition(r, c) = current.getCondition(r, c);
+      if(current.getCondition(r, c) == Condition::Removed)
+        next.setCondition(r, c) = Condition::Empty;
+      if (current.getCondition(r, c) == Condition::Infected)
       {
         if (probability(gamma))
         {
-          next.condition(r, c) = Condition::Removed;
+          next.setCondition(r, c) = Condition::Removed;
         }
       }
-      else if (current.condition(r, c) == Condition::Susceptible)
+      else if (current.getCondition(r, c) == Condition::Susceptible)
       {
-          //da studiare
-        int n_infected = neighbours<Condition::Infected> (current, r, c);
+        //da studiare
+        int n_infected = neighbours<Condition::Infected>(current, r, c);
         //double beta0 = beta*(7./16.);
-        double beta_bis = beta * (n_infected/8.);
+        double beta_bis = beta * (n_infected / 8.);
         if (probability(beta_bis))
         {
-          next.condition(r, c) = Condition::Infected;
+          next.setCondition(r, c) = Condition::Infected;
         }
       }
     }
   }
   return next;
 }
-
-
 
 void WriteText(sf::RenderWindow &window, const std::string &string, short pos_x, short pos_y)
 {
@@ -217,32 +242,36 @@ void Window(int T, World &pan, int N, short width = 800, short height = 600)
       for (int col = 0; col < N; ++col)
       {
         point.setFillColor(sf::Color::Blue);
-        state = pan.condition(row, col);
+        state = pan.getCondition(row, col);
         point.setPosition(col * width_p + pan_x, row * height_p + pan_y);
         if (state == Condition::Infected)
           point.setFillColor(sf::Color::Red);
         else if (state == Condition::Removed)
           point.setFillColor(sf::Color::Green);
+        else if (state == Condition::Empty)
+          point.setFillColor(sf::Color::Black);
         window.draw(point);
       }
     }
     {
-      int a = 0, b = 0;
+      int a = 0, b = 0, c = 0;
       for (int r = 0; r < N; r++)
       {
         for (int c = 0; c < N; ++c)
         {
-          state = pan.condition(r, c);
+          state = pan.getCondition(r, c);
           if (state == Condition::Infected)
             ++a;
           if (state == Condition::Removed)
             ++b;
+          if (state == Condition::Empty)
+            ++c;
         }
       }
-      std::cerr << "Infected: " << a << "\tRemoved: " << b << std::endl;
+      std::cerr << "Infected: " << a << "\tRemoved: " << b << "\tEmpty: " << c << std::endl;
     }
     window.display();
-    std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+    std::this_thread::sleep_for(std::chrono::milliseconds(750));
     pan = evolve(pan);
   }
   sf::Event chiusura;
