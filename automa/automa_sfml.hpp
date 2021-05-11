@@ -1,3 +1,4 @@
+//g++ main_a.cpp -Wall -Wextra -lsfml-graphics -
 #include <vector>
 #include <cassert>
 #include <random>
@@ -11,10 +12,11 @@ enum class Condition : char
 {
   Empty,
   Susceptible,
-  Removed,
+  Healed,
   Infected,
   Wall,
-  Booked
+  Booked,
+  Dead
 };
 struct from_to
 {
@@ -28,10 +30,11 @@ class World
   using Grid = std::vector<Condition>;
   int m_size;
   Grid m_grid;
-  double beta = 0., gamma = 0.;
+  double beta = 0., gamma = 0., deathRate = 0.;
 
 public:
-  World(int n, double beta_, double gamma_) : m_size(n), m_grid(m_size * m_size, Condition::Susceptible), beta{beta_}, gamma{gamma_}
+  World(int n, double beta_, double gamma_, double deathRate_in) : m_size(n), m_grid(m_size * m_size, Condition::Susceptible), beta{beta_}, gamma{gamma_}, 
+                                                                    deathRate{deathRate_in}
   {
     assert(m_size > 0);
   }
@@ -46,6 +49,10 @@ public:
     return gamma;
   }
 
+  double get_deathRate() const
+  {
+    return deathRate;
+  }
   int size() const
   {
     return m_size;
@@ -127,15 +134,23 @@ inline bool probability(double prob)
   return exitus <= prob;
 }
 
-inline void move_cell(World &next)
+inline void move_cell(World &next, int day)
 {
   std::vector<from_to> fromTo;
-  for (int r = 0; r != next.size(); ++r)
+  int init = 0, out = next.size();
+  char each = 1;
+  if(day % 2 == 1)
   {
-    for (int c = 0; c != next.size(); ++c)
+    init = next.size() - 1;
+    out = -1;
+    each = -1;
+  }
+  for (int r = init; r != out; r += each)
+  {
+    for (int c = init; c != out; c += each)
     {
       short int empty_cells = neighbours<Condition::Empty>(next, r, c);
-      if (empty_cells == 0 || next.getCondition(r, c) == Condition::Empty)
+      if (empty_cells == 0 || next.getCondition(r, c) == Condition::Empty || next.getCondition(r, c) == Condition::Dead)
       {
         continue;
       }
@@ -146,7 +161,6 @@ inline void move_cell(World &next)
       {
         continue;
       }
-
       int count_empty = 0, row = -1, column = -1;
       for (; row != 2 && count_empty != exitus; ++row)
       {
@@ -166,31 +180,34 @@ inline void move_cell(World &next)
       fromTo.push_back({r, c, r + row, c + column});
     }
   }
-  for (int i = 0; i < fromTo.size(); ++i)
+  for (int i = 0; i < (int)fromTo.size(); ++i)
   {
     next.setCondition(fromTo[i].r_t, fromTo[i].c_t) = next.getCondition(fromTo[i].r_f, fromTo[i].c_f);
     next.setCondition(fromTo[i].r_f, fromTo[i].c_f) = Condition::Empty;
   }
 }
 
-inline World evolve(World& current)
+inline World evolve(World& current, int day)
 {
-  double beta = current.get_beta(), gamma = current.get_gamma();
+  double beta = current.get_beta(), gamma = current.get_gamma(), deathRate = current.get_deathRate();
   int const N = current.size();
-  World next(N, beta, gamma);
-  move_cell(current);
+  World next(N, beta, gamma, deathRate);
+  move_cell(current, day);
   for (int r = 0; r != N; ++r)
   {
     for (int c = 0; c != N; ++c)
     {
       next.setCondition(r, c) = current.getCondition(r, c);
-      if(current.getCondition(r, c) == Condition::Removed)
-        next.setCondition(r, c) = Condition::Empty;
+      /*if(current.getCondition(r, c) == Condition::Dead)
+        next.setCondition(r, c) = Condition::Empty;*/
       if (current.getCondition(r, c) == Condition::Infected)
       {
         if (probability(gamma))
         {
-          next.setCondition(r, c) = Condition::Removed;
+          if(probability(deathRate))
+            next.setCondition(r, c) = Condition::Dead;
+          else
+            next.setCondition(r, c) = Condition::Healed;
         }
       }
       else if (current.getCondition(r, c) == Condition::Susceptible)
@@ -246,8 +263,10 @@ void Window(int T, World &pan, int N, short width = 800, short height = 600)
         point.setPosition(col * width_p + pan_x, row * height_p + pan_y);
         if (state == Condition::Infected)
           point.setFillColor(sf::Color::Red);
-        else if (state == Condition::Removed)
+        else if (state == Condition::Healed)
           point.setFillColor(sf::Color::Green);
+        else if (state == Condition::Dead)
+          point.setFillColor(sf::Color{220, 200, 0, 255});
         else if (state == Condition::Empty)
           point.setFillColor(sf::Color::Black);
         window.draw(point);
@@ -262,17 +281,17 @@ void Window(int T, World &pan, int N, short width = 800, short height = 600)
           state = pan.getCondition(r, c);
           if (state == Condition::Infected)
             ++a;
-          if (state == Condition::Removed)
+          if (state == Condition::Healed)
             ++b;
           if (state == Condition::Empty)
             ++c;
         }
       }
-      std::cerr << "Infected: " << a << "\tRemoved: " << b << "\tEmpty: " << c << std::endl;
+      std::cerr << "Infected: " << a << "\tHealed: " << b << "\tEmpty: " << c << std::endl;
     }
     window.display();
     std::this_thread::sleep_for(std::chrono::milliseconds(750));
-    pan = evolve(pan);
+    pan = evolve(pan, i);
   }
   sf::Event chiusura;
   while (window.waitEvent(chiusura))
