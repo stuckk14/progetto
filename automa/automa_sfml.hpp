@@ -40,11 +40,11 @@ class World
   int m_size;
   Grid m_grid;
   double beta = 0., gamma = 0., deathRate = 0., lockdownLimit = 1.;
-  int resTime = 0;
+  int resTime = 0, nVaccinati = 0;
 
 public:
-  World(int n, double beta_, double gamma_, double deathRate_in, double ld_in, int resTime_in) : m_size(n), m_grid(m_size * m_size, {Condition::Susceptible, 0}), beta{beta_}, gamma{gamma_},
-                                                                                                 deathRate{deathRate_in}, lockdownLimit{ld_in}, resTime{resTime_in}
+  World(int n, double beta_, double gamma_, double deathRate_in, double ld_in, int resTime_in, int vaccinati_in) : m_size(n), m_grid(m_size * m_size, {Condition::Susceptible, 0}), beta{beta_}, gamma{gamma_},
+                                                                                                 deathRate{deathRate_in}, lockdownLimit{ld_in}, resTime{resTime_in}, nVaccinati{vaccinati_in}
   {
     assert(m_size > 0);
   }
@@ -78,18 +78,22 @@ public:
   {
     return lockdownLimit;
   }
-  int size() const
+  int getNVaccinati () const noexcept
+  {
+    return nVaccinati;
+  }
+  int size() const noexcept
   {
     return m_size;
   }
 
-  auto begin_iterator() const
+  auto begin_iterator() const noexcept
   {
     auto it = m_grid.begin();
     return it;
   }
 
-  auto end_iterator() const
+  auto end_iterator() const noexcept
   {
     auto it = m_grid.end();
     return it;
@@ -227,7 +231,7 @@ inline World evolve(World &current, int day)
   double beta = current.get_beta(), gamma = current.get_gamma(), deathRate = current.get_deathRate();
   int resTime = current.get_res_time();
   int const N = current.size();
-  World next(N, beta, gamma, deathRate, current.getLockdownLimit(), resTime);
+  World next(N, beta, gamma, deathRate, current.getLockdownLimit(), resTime, current.getNVaccinati());
   move_cell(current, day);
   for (int r = 0; r != N; ++r)
   {
@@ -315,39 +319,62 @@ void Window(int T, World &pan, int N, short width = 800, short height = 600)
       }
     }
 
-    int a = 0, b = 0, d = 0, e = 0;
+    
+    int infected = 0, healed = 0, empty = 0, suscep = 0;
     for (int r = 0; r < N; r++)
     {
       for (int c = 0; c < N; ++c)
       {
         state = pan.getCondition(r, c);
         if (state == Condition::Infected)
-          ++a;
+          ++infected;
         else if (state == Condition::Healed)
-          ++b;
+          ++healed;
         else if (state == Condition::Empty)
-          ++d;
+          ++empty;
         else if (state == Condition::Susceptible)
-          ++e;
+          ++suscep;
       }
     }
-    double percentageInfected = static_cast<double>(a) / e;
+
+    std::default_random_engine eng{std::random_device{}()};
+    std::uniform_int_distribution<int> dist{0, N - 1};
+    int nVaccinati = pan.getNVaccinati();
+    for (int j = 0; j != nVaccinati && i == 3; ++j)
+    {
+      auto r = dist(eng);
+      auto c = dist(eng);
+      if(j != suscep)
+      {
+        while (pan.getCondition(r, c) != Condition::Susceptible)
+        {
+          r = dist(eng);
+          c = dist(eng);
+        }
+        pan.setCondition(r, c) = Condition::Healed;
+      }
+      else
+        break;
+    }
+
+    double percentageInfected = static_cast<double>(infected) / suscep;
     //std::cout << pan.getLockdownLimit() << std::endl;
     //std::cout << "a: " << a << "percentage: " << percentageInfected << "\n\n";
     if (lockdown == false && percentageInfected >= pan.getLockdownLimit())
     {
-      std::cout << "Inizio lockdown!";//\tPercentuale infetti: " << (percentageInfected * 100) << "% \n\n";
+      std::cout << "Inizio lockdown!"; //\tPercentuale infetti: " << (percentageInfected * 100) << "% \n\n";
       pan.setLockdown(true);
       lockdown = true;
     }
     else if (lockdown == true && percentageInfected <= (pan.getLockdownLimit()) * 0.9)
     {
-      std::cout << "Fine lockdown!";//\tPercentuale infetti: " << (percentageInfected * 100) << "% \n\n";
+      std::cout << "Fine lockdown!"; //\tPercentuale infetti: " << (percentageInfected * 100) << "% \n\n";
       pan.setLockdown(false);
       lockdown = false;
     }
-    std::cerr << "\nDays: " << i << "\tInfected: " << a << "\tHealed: " << b << "\tEmpty: " << d
-              << "Percentuale infetti: " << (percentageInfected * 100) << "% \n\n" << std::endl;
+    std::cerr << "\nDays: " << i << "\tInfected: " << infected << "\tHealed: " << healed << "\tEmpty: " << empty
+              << "Percentuale infetti: " << (percentageInfected * 100) << "% \n\n"
+              << std::endl;
 
     window.display();
     std::this_thread::sleep_for(std::chrono::milliseconds(750));

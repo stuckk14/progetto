@@ -37,9 +37,9 @@
 int main()
 {
     constexpr int world_size = 50;
-    double beta = 0.8, gamma = 0.3, deathRate = 0.02, lockdownLimit = 0.25;
-    int daysToDeath = 3;
-    World world(world_size, beta, gamma, deathRate, lockdownLimit, daysToDeath);
+    double beta = 0.05, gamma = 0.3, deathRate = 0.02, lockdownLimit = 0.25;
+    int daysToDeath = 5, nVaccinati = 150;
+    World world(world_size, beta, gamma, deathRate, lockdownLimit, daysToDeath, nVaccinati);
 
     {
         std::default_random_engine eng{std::random_device{}()};
@@ -57,8 +57,7 @@ int main()
         {
             auto r = dist(eng);
             auto c = dist(eng);
-            for (; world.getCondition(r, c) == Condition::Empty;
-                r = dist(eng), c = dist(eng));
+            for (; world.getCondition(r, c) == Condition::Empty; r = dist(eng), c = dist(eng));
             world.setCondition(r, c) = Condition::Empty;
         }
     }
