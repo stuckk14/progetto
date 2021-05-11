@@ -23,35 +23,60 @@ struct from_to
   int r_f, c_f, r_t, c_t;
 };
 
+struct State
+{
+  Condition condition;
+  int time;
+};
+bool operator==(State const &left, State const &right)
+{
+  return left.condition == right.condition && left.time == right.time;
+}
 constexpr Condition wall = Condition::Wall;
 
 class World
 {
-  using Grid = std::vector<Condition>;
+  using Grid = std::vector<State>;
   int m_size;
   Grid m_grid;
-  double beta = 0., gamma = 0., deathRate = 0.;
+  double beta = 0., gamma = 0., deathRate = 0., lockdownLimit = 1.;
+  int resTime = 0;
 
 public:
-  World(int n, double beta_, double gamma_, double deathRate_in) : m_size(n), m_grid(m_size * m_size, Condition::Susceptible), beta{beta_}, gamma{gamma_}, 
-                                                                    deathRate{deathRate_in}
+  World(int n, double beta_, double gamma_, double deathRate_in, double ld_in, int resTime_in) : m_size(n), m_grid(m_size * m_size, {Condition::Susceptible, 0}), beta{beta_}, gamma{gamma_},
+                                                                                                 deathRate{deathRate_in}, lockdownLimit{ld_in}, resTime{resTime_in}
   {
     assert(m_size > 0);
   }
 
-  double get_beta() const
+  double get_beta() const noexcept
   {
     return beta;
   }
+  void setLockdown(bool command) noexcept
+  {
+    if (command)
+      beta /= 2.;
+    else
+      beta *= 2.;
+  }
 
-  double get_gamma() const
+  double get_gamma() const noexcept
   {
     return gamma;
   }
 
-  double get_deathRate() const
+  double get_deathRate() const noexcept
   {
     return deathRate;
+  }
+  int get_res_time() const noexcept
+  {
+    return resTime;
+  }
+  double getLockdownLimit() const noexcept
+  {
+    return lockdownLimit;
   }
   int size() const
   {
@@ -81,7 +106,7 @@ public:
     //assert(i >= 0 && i < m_size && j >= 0 && j < m_size);
     auto const index = r * m_size + c;
     //assert(index >= 0 && index < static_cast<int>(m_grid.size()));
-    return m_grid[index];
+    return m_grid[index].condition;
   }
 
   Condition &setCondition(int r, int c) noexcept
@@ -91,7 +116,17 @@ public:
     assert(r >= 0 && r < m_size && c >= 0 && c < m_size);
     auto const index = r * m_size + c;
     assert(index >= 0 && index < static_cast<int>(m_grid.size()));
-    return m_grid[index];
+    return m_grid[index].condition;
+  }
+  int &Time(int r, int c) noexcept
+  {
+    auto const index = r * m_size + c;
+    return m_grid[index].time;
+  }
+  int const &Time(int r, int c) const noexcept
+  {
+    auto const index = r * m_size + c;
+    return m_grid[index].time;
   }
 
   friend bool operator==(World const &l, World const &r)
@@ -139,7 +174,7 @@ inline void move_cell(World &next, int day)
   std::vector<from_to> fromTo;
   int init = 0, out = next.size();
   char each = 1;
-  if(day % 2 == 1)
+  if (day % 2 == 1)
   {
     init = next.size() - 1;
     out = -1;
@@ -187,42 +222,48 @@ inline void move_cell(World &next, int day)
   }
 }
 
-inline World evolve(World& current, int day)
+inline World evolve(World &current, int day)
 {
   double beta = current.get_beta(), gamma = current.get_gamma(), deathRate = current.get_deathRate();
+  int resTime = current.get_res_time();
   int const N = current.size();
-  World next(N, beta, gamma, deathRate);
+  World next(N, beta, gamma, deathRate, current.getLockdownLimit(), resTime);
   move_cell(current, day);
   for (int r = 0; r != N; ++r)
   {
     for (int c = 0; c != N; ++c)
     {
       next.setCondition(r, c) = current.getCondition(r, c);
-      /*if(current.getCondition(r, c) == Condition::Dead)
-        next.setCondition(r, c) = Condition::Empty;*/
-      if (current.getCondition(r, c) == Condition::Infected)
+      next.Time(r, c) = current.Time(r, c);
+      if (current.getCondition(r, c) == Condition::Dead)
+        next.setCondition(r, c) = Condition::Empty;
+      if (current.getCondition(r, c) == Condition::Infected && current.Time(r, c) >= resTime)
       {
         if (probability(gamma))
         {
-          if(probability(deathRate))
+          if (probability(deathRate))
             next.setCondition(r, c) = Condition::Dead;
           else
             next.setCondition(r, c) = Condition::Healed;
         }
       }
+
       else if (current.getCondition(r, c) == Condition::Susceptible)
       {
         //da studiare
         int n_infected = neighbours<Condition::Infected>(current, r, c);
-        //double beta0 = beta*(7./16.);
+        //double beta0 = beta * (7. / 16.);
         double beta_bis = beta * (n_infected / 8.);
         if (probability(beta_bis))
         {
           next.setCondition(r, c) = Condition::Infected;
+          next.Time(r, c) = 0;
         }
       }
+      ++next.Time(r, c);
     }
   }
+  std::cerr << next.Time(25, 25) << "\t\t";
   return next;
 }
 
@@ -252,6 +293,7 @@ void Window(int T, World &pan, int N, short width = 800, short height = 600)
   const float width_p = .9 * width / N, height_p = .9 * height / N;
   getchar();
   Condition state;
+  bool lockdown = false;
   for (int i = 0; i < T; ++i)
   {
     for (int row = 0; row < N; ++row)
@@ -272,23 +314,41 @@ void Window(int T, World &pan, int N, short width = 800, short height = 600)
         window.draw(point);
       }
     }
+
+    int a = 0, b = 0, d = 0, e = 0;
+    for (int r = 0; r < N; r++)
     {
-      int a = 0, b = 0, c = 0;
-      for (int r = 0; r < N; r++)
+      for (int c = 0; c < N; ++c)
       {
-        for (int c = 0; c < N; ++c)
-        {
-          state = pan.getCondition(r, c);
-          if (state == Condition::Infected)
-            ++a;
-          if (state == Condition::Healed)
-            ++b;
-          if (state == Condition::Empty)
-            ++c;
-        }
+        state = pan.getCondition(r, c);
+        if (state == Condition::Infected)
+          ++a;
+        else if (state == Condition::Healed)
+          ++b;
+        else if (state == Condition::Empty)
+          ++d;
+        else if (state == Condition::Susceptible)
+          ++e;
       }
-      std::cerr << "Infected: " << a << "\tHealed: " << b << "\tEmpty: " << c << std::endl;
     }
+    double percentageInfected = static_cast<double>(a) / e;
+    //std::cout << pan.getLockdownLimit() << std::endl;
+    //std::cout << "a: " << a << "percentage: " << percentageInfected << "\n\n";
+    if (lockdown == false && percentageInfected >= pan.getLockdownLimit())
+    {
+      std::cout << "Inizio lockdown!";//\tPercentuale infetti: " << (percentageInfected * 100) << "% \n\n";
+      pan.setLockdown(true);
+      lockdown = true;
+    }
+    else if (lockdown == true && percentageInfected <= (pan.getLockdownLimit()) * 0.9)
+    {
+      std::cout << "Fine lockdown!";//\tPercentuale infetti: " << (percentageInfected * 100) << "% \n\n";
+      pan.setLockdown(false);
+      lockdown = false;
+    }
+    std::cerr << "\nDays: " << i << "\tInfected: " << a << "\tHealed: " << b << "\tEmpty: " << d
+              << "Percentuale infetti: " << (percentageInfected * 100) << "% \n\n" << std::endl;
+
     window.display();
     std::this_thread::sleep_for(std::chrono::milliseconds(750));
     pan = evolve(pan, i);
