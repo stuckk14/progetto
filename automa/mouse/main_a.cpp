@@ -2,72 +2,63 @@
 #include <iostream>
 #include <random>
 #include <thread>
+#include <fstream>
 #include "automa_mouse.hpp"
-
-/*void print(std::ostream &os, World const &world)
+bool controllo(double min, double max, double val)
 {
-    constexpr auto clear = "\033[2J";
-    const auto N = world.size();
-
-    os << clear;
-    os << '+' << std::string(N, '-') << "+\n";
-    for (int r = 0; r != N; ++r)
-    {
-        os << '|';
-        for (int c = 0; c != N; ++c)
-        {
-            switch (world.condition(r, c))
-            {
-            case Condition::Infected:
-                std::cout << '*';
-                break;
-            case Condition::Removed:
-                std::cout << 'x';
-                break;
-            default:
-                std::cout << ' ';
-                break;
-            }
-        }
-        os << "|\n";
-    }
-    os << '+' << std::string(N, '-') << "+\n";
+    return val <= max && val >= min;
 }
-*/
+bool controllo(int min, int max, int val)
+{
+    return val <= max && val >= min;
+}
 int main()
 {
-    constexpr int world_size = 50;
-    double beta = 0.5, gamma = 0.3, deathRate = 0.02, lockdownLimit = 0.25;
-    int daysToDeath = 3, nVaccinati = 0;
-    World world(world_size, beta, gamma, deathRate, lockdownLimit, daysToDeath, nVaccinati);
-
-    {
-        std::default_random_engine eng{std::random_device{}()};
-        std::uniform_int_distribution<int> dist{0, world_size - 1};
-
-       /* for (int i = 0; i != world_size * world_size / 5; ++i)
-        {
-            auto r = dist(eng);
-            auto c = dist(eng);
-            for (; world.getCondition(r, c) == Condition::Infected;
-                r = dist(eng), c = dist(eng));
-            world.setCondition(r, c) = Condition::Infected;
-        }
-        for (int i = 0; i != world_size * world_size / 10; ++i)
-        {
-            auto r = dist(eng);
-            auto c = dist(eng);
-            for (; world.getCondition(r, c) == Condition::Empty; r = dist(eng), c = dist(eng));
-            world.setCondition(r, c) = Condition::Empty;
-        }*/
+    int world_size, nDays;
+    double beta, gamma, deathRate, lockdownLimit;
+    int daysToDeath, nVaccinati;
+    std::ifstream file;
+    file.open("input.dat");
+    if(!file.is_open())
+        std::cerr << "Errore nell'apertura del file";
+    std::string bin;
+    file >> bin >> world_size >> bin >> nDays >> bin >> beta >> bin >> gamma >> bin >> deathRate
+         >> bin >> lockdownLimit >> bin >> daysToDeath >> bin
+         >> nVaccinati;
+    file.close();
+    if(!controllo (0., 1., beta)){
+        std::cerr << "Beta e' fuori dal range";
+        return -1;
     }
+    if(!controllo (0., 1., gamma)){
+        std::cerr << "Gamma e' fuori dal range";
+        return -1;
+    }
+    if(!controllo (0, 10000, nDays)){
+        std::cerr << "Il numero dei giorni della simulazione e' fuori dal range";
+        return -1;
+    }
+    if(!controllo (0, 60, world_size)){
+        std::cerr << "Il lato della griglia e' fuori dal range";
+        return -1;
+    }
+    if(!controllo (0., 1., deathRate)){
+        std::cerr << "Il tasso di letalita' e' fuori dal range";
+        return -1;
+    }
+    if(!controllo (0., 1., lockdownLimit)){
+        std::cerr << "La soglia di attivazione del lockdown e' fuori dal range";
+        return -1;
+    }
+    if(!controllo (0, 10000, daysToDeath)){
+        std::cerr << "Il tempo di risoluzione e' fuori dal range";
+        return -1;
+    }
+    if(!controllo (0, world_size * world_size, nVaccinati)){
+        std::cerr << "Il numero di vaccinabili e' fuori dal range";
+        return -1;
+    }
+    World world(world_size, beta, gamma, deathRate, lockdownLimit, daysToDeath, nVaccinati);
     std::cerr<<"lockdown limit: " << world.getLockdownLimit();
-    Window(10000, world, world_size, 900, 900);
-    /*
-    for (int i = 0; i != 200; ++i)
-    {
-        world = evolve(world);
-        print(std::cout, world);
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    }*/
+    Window(nDays, world, world_size, 900, 900);
 }

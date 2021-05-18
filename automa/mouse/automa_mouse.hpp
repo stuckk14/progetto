@@ -173,7 +173,7 @@ inline bool probability(double prob)
   return exitus <= prob;
 }
 
-inline void move_cell(World &current, World& next, int day)
+inline void move_cell(World &current, int day)
 {
   std::vector<from_to> fromTo;
   int start = 0, end = current.size();
@@ -215,20 +215,16 @@ inline void move_cell(World &current, World& next, int day)
         if (count_empty == exitus)
           break;
       }
+      
       current.setCondition(r + row, c + column) = Condition::Booked;
-      next.setCondition(r + row, c + column) = next.getCondition(r, c);
-      next.setCondition(r, c) = Condition::Empty;
+      fromTo.push_back({r, c, r + row, c + column});
     }
   }
-  /*for (int i = 0; i < out; ++i)
+  for (int i = 0; i < (int)fromTo.size(); ++i)
   {
-    for(int j = 0; j < out; ++j)
-    {
-      current.getCondition(i, j)
-    }
-    next.setCondition(fromTo[i].r_t, fromTo[i].c_t) = next.getCondition(fromTo[i].r_f, fromTo[i].c_f);
-    next.setCondition(fromTo[i].r_f, fromTo[i].c_f) = Condition::Empty;
-  }*/
+    current.setCondition(fromTo[i].r_t, fromTo[i].c_t) = current.getCondition(fromTo[i].r_f, fromTo[i].c_f);
+    current.setCondition(fromTo[i].r_f, fromTo[i].c_f) = Condition::Empty;
+  }
 }
 
 inline World evolve(World &current, int day)
@@ -237,8 +233,8 @@ inline World evolve(World &current, int day)
   int resTime = current.get_res_time();
   int const N = current.size();
   World next(N, beta, gamma, deathRate, current.getLockdownLimit(), resTime, current.getNVaccinati());
-  move_cell(current, next, day);
-  /*for (int r = 0; r != N; ++r)
+  move_cell(current, day);
+  for (int r = 0; r != N; ++r)
   {
     for (int c = 0; c != N; ++c)
     {
@@ -256,7 +252,6 @@ inline World evolve(World &current, int day)
             next.setCondition(r, c) = Condition::Healed;
         }
       }
-
       else if (current.getCondition(r, c) == Condition::Susceptible)
       {
         //da studiare
@@ -272,7 +267,6 @@ inline World evolve(World &current, int day)
       ++next.Time(r, c);
     }
   }
-  std::cerr << next.Time(25, 25) << "\t\t";*/
   return next;
 }
 
@@ -283,11 +277,12 @@ void WriteText(sf::RenderWindow &window, const std::string &string, short pos_x,
     std::cerr << "\n\nError loading font\n\n";
   sf::Text text;
   text.setFont(font);
-  text.setCharacterSize(15);
+  text.setCharacterSize(pos_y / 2);
   text.setFillColor(sf::Color::Black);
   text.setString(string);
   float text_w = text.getGlobalBounds().width;
-  text.setPosition(pos_x - text_w, pos_y);
+  float text_h = text.getGlobalBounds().height;
+  text.setPosition(pos_x - text_w / 2, (pos_y - text_h) / 2);
   window.draw(text);
 }
 
@@ -347,8 +342,10 @@ void Window(int T, World &pan, int N, short width = 800, short height = 600)
   }
   Condition state;
   bool lockdown = false;
-  for (int i = 0; i < T; ++i)
+  int deaths = 0;
+  for (int i = 1; i <= T; ++i)
   {
+    window.clear(sf::Color{130,130,130,255});
     for (int row = 0; row < N; ++row)
     {
       for (int col = 0; col < N; ++col)
@@ -367,8 +364,6 @@ void Window(int T, World &pan, int N, short width = 800, short height = 600)
         window.draw(point);
       }
     }
-
-    
     int infected = 0, healed = 0, empty = 0, suscep = 0;
     for (int r = 0; r < N; r++)
     {
@@ -383,17 +378,23 @@ void Window(int T, World &pan, int N, short width = 800, short height = 600)
           ++empty;
         else if (state == Condition::Susceptible)
           ++suscep;
+        else if (state == Condition::Dead)
+          ++deaths;
       }
     }
-
+    std::string dati{"Day: "};
+    dati = dati + std::to_string(i) + "   Susceptibles: " + std::to_string(suscep) + "   Infected: " + std::to_string(infected)
+                + "   Healed: " + std::to_string(healed) + "   Dead: " + std::to_string(deaths);
+    WriteText(window, dati, width / 2, pan_y);
     std::default_random_engine eng{std::random_device{}()};
     std::uniform_int_distribution<int> dist{0, N - 1};
-    int nVaccinati = pan.getNVaccinati();
-    for (int j = 0; j != nVaccinati && i == 3; ++j)
+    int vaccinatiPerGiorno = std::round(pan.getNVaccinati() / 10.);
+    int totVaccinati = 0;
+    for (int j = 0; j != vaccinatiPerGiorno && i >= T / 5 && i < ((T / 5) + 10); ++j)
     {
       auto r = dist(eng);
       auto c = dist(eng);
-      if(j != suscep)
+      if(totVaccinati != suscep)
       {
         while (pan.getCondition(r, c) != Condition::Susceptible)
         {
@@ -401,6 +402,7 @@ void Window(int T, World &pan, int N, short width = 800, short height = 600)
           c = dist(eng);
         }
         pan.setCondition(r, c) = Condition::Healed;
+        ++totVaccinati;
       }
       else
         break;
@@ -425,7 +427,7 @@ void Window(int T, World &pan, int N, short width = 800, short height = 600)
               << std::endl;
 
     window.display();
-    std::this_thread::sleep_for(std::chrono::milliseconds(70));
+    std::this_thread::sleep_for(std::chrono::milliseconds(750));
     pan = evolve(pan, i);
   }
   sf::Event chiusura;

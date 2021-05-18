@@ -1,0 +1,8 @@
+world_size 50
+n_days 250
+beta 0.5
+gamma 0.3
+death_rate 0.02
+lockdown_limit 0.25
+days_to_death 3
+nVaccinati 10
