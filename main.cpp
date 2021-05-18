@@ -18,13 +18,13 @@ void print ( Pandemy& pan )
 int main () 
 {
   std::cout << "Inserire il numero di elementi della popolazione" << '\n';
-  unsigned int N;
+  int N;
   std::cin >> N ;
   std::cout << "Inserire il numero di infetti iniziali" << '\n';
-  unsigned int I;
+  int I;
   std::cin >> I;
   std::cout << "Inserire la durata in giorni della simulazione" << '\n';
-  unsigned int T;
+  int T;
   std::cin >>  T;
   std::cout << "Inserire i parametri beta e gamma relativi alla simulazione" << '\n';
   double beta, gamma;
@@ -34,7 +34,7 @@ int main ()
   Window(T, pan, N, 1280, 720);
   std::cout << "  STATUS:     " << "SUSCEPTIBLES:    " << "INFECTED:    " << "REMOVED:     " <<'\n'
           << "==========================================================================================================" << '\n'; 
- for ( unsigned int a = 1; a <= T; ++a ) {
+ for (int a = 1; a <= T; ++a) {
      std::cout << a << ":           ";
      pan.evolve();
      print(pan);

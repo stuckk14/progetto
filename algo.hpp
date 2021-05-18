@@ -13,13 +13,13 @@ struct Population
 
 class Pandemy
 {
-    unsigned int N{};
-    unsigned int T;
+    int N{};
+    int T;
     double gamma = 0., beta = 0.;
     Population pop;
 
 public:
-    Pandemy(unsigned int N_in, unsigned int I, unsigned int T_in, double beta_in, double gamma_in) : N{N_in}, T{T_in}, gamma{gamma_in}, beta{beta_in},
+    Pandemy(int N_in, int I, int T_in, double beta_in, double gamma_in) : N{N_in}, T{T_in}, gamma{gamma_in}, beta{beta_in},
                                                                                                      pop{static_cast<double>(N_in - I), static_cast<double>(I), 0} {}
 
     bool invariant()
@@ -93,7 +93,7 @@ void Window(int T, Pandemy &pan, int N, short width = 800, short height = 600)
 {
     sf::RenderWindow window(sf::VideoMode(width, height), "Andamento S, I e R");
     //sf::RectangleShape point(sf::Vector2f(3.f, 3.f));
-    sf::CircleShape point(1.5f);
+    sf::CircleShape point(3.f);
     sf::RectangleShape background(sf::Vector2f(width, height));
     background.setFillColor(sf::Color::White);
     window.draw(background);
@@ -120,7 +120,7 @@ void Window(int T, Pandemy &pan, int N, short width = 800, short height = 600)
         point.setFillColor(sf::Color::Red);
         window.draw(point);
         point.setPosition(pan_x + i * (width * .8f / T), -y_r + pan_y);
-        point.setFillColor(sf::Color::Green);
+        point.setFillColor(sf::Color{0,200,0,255});
         window.draw(point);
     }
     WriteText(window, std::to_string(N), pan_x - 3.f, height - pan_y); //Y max
