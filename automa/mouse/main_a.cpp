@@ -14,51 +14,68 @@ bool controllo(int min, int max, int val)
 }
 int main()
 {
-    int world_size, nDays;
+    int world_righe, world_colonne, nDays;
     double beta, gamma, deathRate, lockdownLimit;
     int daysToDeath, nVaccinati;
     std::ifstream file;
     file.open("input.dat");
-    if(!file.is_open())
+    if (!file.is_open())
         std::cerr << "Errore nell'apertura del file";
     std::string bin;
-    file >> bin >> world_size >> bin >> nDays >> bin >> beta >> bin >> gamma >> bin >> deathRate
-         >> bin >> lockdownLimit >> bin >> daysToDeath >> bin
-         >> nVaccinati;
+    sf::Image mondo;
+
+    if (!mondo.loadFromFile("Mondo_piccolo.png"))
+        std::cerr << "Errore caricamento immagine";
+    sf::Vector2u dim {mondo.getSize()};
+
+    file >> bin >> world_righe >> bin >> world_colonne >> bin >> nDays >> bin >> beta >> bin >> gamma >> bin >> deathRate >> bin >> lockdownLimit >> bin >> daysToDeath >> bin >> nVaccinati;
     file.close();
-    if(!controllo (0., 1., beta)){
+    if (!controllo(0., 1., beta))
+    {
         std::cerr << "Beta e' fuori dal range";
-        return -1;
+        return 1;
     }
-    if(!controllo (0., 1., gamma)){
+    if (!controllo(0., 1., gamma))
+    {
         std::cerr << "Gamma e' fuori dal range";
-        return -1;
+        return 1;
     }
-    if(!controllo (0, 10000, nDays)){
+    if (!controllo(0, 10000, nDays))
+    {
         std::cerr << "Il numero dei giorni della simulazione e' fuori dal range";
-        return -1;
+        return 1;
     }
-    if(!controllo (0, 60, world_size)){
+    if (!controllo(0, 1000, world_righe))
+    {
         std::cerr << "Il lato della griglia e' fuori dal range";
-        return -1;
+        return 1;
     }
-    if(!controllo (0., 1., deathRate)){
+    if (!controllo(0, 1000, world_colonne))
+    {
+        std::cerr << "Il lato della griglia e' fuori dal range";
+        return 1;
+    }
+    if (!controllo(0., 1., deathRate))
+    {
         std::cerr << "Il tasso di letalita' e' fuori dal range";
-        return -1;
+        return 1;
     }
-    if(!controllo (0., 1., lockdownLimit)){
+    if (!controllo(0., 1., lockdownLimit))
+    {
         std::cerr << "La soglia di attivazione del lockdown e' fuori dal range";
-        return -1;
+        return 1;
     }
-    if(!controllo (0, 10000, daysToDeath)){
+    if (!controllo(0, 10000, daysToDeath))
+    {
         std::cerr << "Il tempo di risoluzione e' fuori dal range";
-        return -1;
+        return 1;
     }
-    if(!controllo (0, world_size * world_size, nVaccinati)){
+    if (!controllo(0, world_righe * world_colonne, nVaccinati))
+    {
         std::cerr << "Il numero di vaccinabili e' fuori dal range";
-        return -1;
+        return 1;
     }
-    World world(world_size, beta, gamma, deathRate, lockdownLimit, daysToDeath, nVaccinati);
-    std::cerr<<"lockdown limit: " << world.getLockdownLimit();
-    Window(nDays, world, world_size, 900, 900);
+    World world(dim.y, dim.x, beta, gamma, deathRate, lockdownLimit, daysToDeath, nVaccinati);
+    std::cerr << "lockdown limit: " << world.getLockdownLimit();
+    Window(nDays, world, mondo, dim.y, dim.x, 1600, 900);
 }
