@@ -24,7 +24,7 @@ int main()
     std::string bin;
     sf::Image mondo;
 
-    if (!mondo.loadFromFile("Mondo_piccolo.png"))
+    if (!mondo.loadFromFile("Mondo_grande_porti.psd"))
         std::cerr << "Errore caricamento immagine";
     sf::Vector2u dim {mondo.getSize()};
 
@@ -45,12 +45,12 @@ int main()
         std::cerr << "Il numero dei giorni della simulazione e' fuori dal range";
         return 1;
     }
-    if (!controllo(0, 1000, world_righe))
+    if (!controllo(0, 1500, world_righe))
     {
         std::cerr << "Il lato della griglia e' fuori dal range";
         return 1;
     }
-    if (!controllo(0, 1000, world_colonne))
+    if (!controllo(0, 1500, world_colonne))
     {
         std::cerr << "Il lato della griglia e' fuori dal range";
         return 1;
@@ -77,5 +77,5 @@ int main()
     }
     World world(dim.y, dim.x, beta, gamma, deathRate, lockdownLimit, daysToDeath, nVaccinati);
     std::cerr << "lockdown limit: " << world.getLockdownLimit();
-    Window(nDays, world, mondo, dim.y, dim.x, 1600, 900);
+    Window(nDays, world, mondo, dim.y, dim.x, 1850, 1000);
 }

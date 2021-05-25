@@ -15,9 +15,9 @@ enum class Condition : char
   Infected,
   Healed,
   Dead,
-  Wall,
   Port,
   Airport,
+  Wall,
   Booked
 };
 struct from_to
@@ -109,7 +109,7 @@ public:
     return it;
   }
 
-  Condition const &getCondition(int r, int c) const noexcept
+  inline Condition const &getCondition(int r, int c) const noexcept
   {
     if (r < 0 || c < 0 || r >= n_righe || c >= n_col)
     {
@@ -123,7 +123,7 @@ public:
     return m_grid[index].condition;
   }
 
-  Condition &setCondition(int r, int c) noexcept
+  inline Condition &setCondition(int r, int c) noexcept
   {
     //auto const i = (r + m_size) % m_size;
     //auto const j = (c + m_size) % m_size;
@@ -186,18 +186,18 @@ inline bool probability(double prob)
 inline void move_cell(World &current, int day)
 {
   std::vector<from_to> fromTo;
+  fromTo.reserve(10 + .8 * day);
   int start_righe = 0, start_col = 0;
   int n_righe = current.getNRighe(), n_col = current.getNCol();
   char each = 1;
   if (day % 2 == 1)
   {
-    start_col= n_col - 1;
-    start_righe= n_righe - 1;
+    start_col = n_col - 1;
+    start_righe = n_righe - 1;
     n_righe = -1;
     n_col = -1;
     each = -1;
   }
-
   for (int r = start_righe; r != n_righe; r += each)
   {
     for (int c = start_col; c != n_col; c += each)
@@ -284,7 +284,7 @@ inline World evolve(World &current, int day)
   return next;
 }
 
-void WriteText(sf::RenderWindow &window, const std::string &string, short pos_x, short pos_y)
+inline void WriteText(sf::RenderWindow &window, const std::string &string, short pos_x, short pos_y)
 {
   sf::Font font;
   if (!font.loadFromFile("arial.ttf"))
@@ -323,33 +323,21 @@ void Window(int T, World &pan, sf::Image immagine, int n_righe, int n_col, short
 
   sf::Vector2u dim = immagine.getSize();
   short imm_height = dim.x, imm_width = dim.y;
-  const float pan_x = 0.05 * width, pan_y = 0.05 * height;
+  const float pan_x = 0.025 * width, pan_y = 0.025 * height;
   const float width_p = .95 * width / n_col, height_p = .95 * height / n_righe;
   float pixel_ratio = width_p;
-  if(width_p > height_p)
+  if (width_p > height_p)
     pixel_ratio = height_p;
-  sf::RectangleShape point(sf::Vector2f(pixel_ratio - 0.5f, pixel_ratio - .5f));
+  sf::RectangleShape point(sf::Vector2f(1.f, 1.f));
   for (short row = 0; row < imm_height; ++row) //Creazione da immagine
     for (short col = 0; col < imm_width; ++col)
     {
-      /* point.setPosition(row * 2, col * 2);
-            if (immagine.getPixel(row, col) == sf::Color{255, 0, 0, 0})
-            {
-                world[row * height + col] = Condition::Port;
-                point.setFillColor(sf::Color::Red);
-                std::cerr << "Red\n\n";
-            }
-            else if (immagine.getPixel(row, col) > sf::Color{30, 170, 70, 0} && immagine.getPixel(row, col) < sf::Color{40, 180, 80, 0})
-            {
-                world[row * height + col] = Condition::Airport;
-                point.setFillColor(sf::Color::Green);
-                std::cerr << "Green\n\n";
-            }*/
-      if (immagine.getPixel(row, col) < sf::Color{0, 0, 0, 120})
+      if (immagine.getPixel(row, col).r == 255 && immagine.getPixel(row, col).g < 230)
+        pan.setCondition(col, row) = Condition::Port;
+      else if (immagine.getPixel(row, col).g > 250 && immagine.getPixel(row, col).r < 230)
+        pan.setCondition(col, row) = Condition::Airport;
+      else if (immagine.getPixel(row, col).b > 150)
         pan.setCondition(col, row) = Condition::Wall;
-      //point.setFillColor(sf::Color::Yellow);
-      // std::cerr << "Yellow\n\n";
-
       else
         pan.setCondition(col, row) = Condition::Susceptible;
     }
@@ -373,7 +361,7 @@ void Window(int T, World &pan, sf::Image immagine, int n_righe, int n_col, short
       {
         point.setFillColor(sf::Color::Black);
         state = pan.getCondition(row, col);
-        point.setPosition(col * pixel_ratio + pan_x, row * pixel_ratio + pan_y);
+        point.setPosition(col * 2.f + pan_x, row * 2.f + pan_y);
         switch (state)
         {
         case Condition::Susceptible:
@@ -388,13 +376,20 @@ void Window(int T, World &pan, sf::Image immagine, int n_righe, int n_col, short
         case Condition::Dead:
           point.setFillColor(sf::Color{220, 200, 0, 255});
           break;
-          default: break;
+        case Condition::Port:
+          point.setFillColor(sf::Color::Magenta);
+          break;
+        case Condition::Airport:
+          point.setFillColor(sf::Color::Cyan);
+          break;
+        default:
+          break;
         }
         window.draw(point);
       }
     }
     window.display();
-    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+    std::this_thread::sleep_for(std::chrono::milliseconds(250));
   }
   Condition state;
   bool lockdown = false;
@@ -408,7 +403,7 @@ void Window(int T, World &pan, sf::Image immagine, int n_righe, int n_col, short
       {
         point.setFillColor(sf::Color::Black);
         state = pan.getCondition(row, col);
-        point.setPosition(col * pixel_ratio + pan_x, row * pixel_ratio + pan_y);
+        point.setPosition(col * 2.f + pan_x, row * 2.f + pan_y);
         switch (state)
         {
         case Condition::Susceptible:
@@ -423,7 +418,14 @@ void Window(int T, World &pan, sf::Image immagine, int n_righe, int n_col, short
         case Condition::Dead:
           point.setFillColor(sf::Color{220, 200, 0, 255});
           break;
-          default: break;
+        case Condition::Port:
+          point.setFillColor(sf::Color::Magenta);
+          break;
+        case Condition::Airport:
+          point.setFillColor(sf::Color::Cyan);
+          break;
+        default:
+          break;
         }
         window.draw(point);
       }
@@ -490,7 +492,7 @@ void Window(int T, World &pan, sf::Image immagine, int n_righe, int n_col, short
               << std::endl;
 
     window.display();
-    std::this_thread::sleep_for(std::chrono::milliseconds(250));
+  //  std::this_thread::sleep_for(std::chrono::milliseconds(100));
     pan = evolve(pan, i);
   }
   sf::Event chiusura;
