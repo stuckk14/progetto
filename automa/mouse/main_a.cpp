@@ -77,5 +77,5 @@ int main()
     }
     World world(dim.y, dim.x, beta, gamma, deathRate, lockdownLimit, daysToDeath, nVaccinati);
     std::cerr << "lockdown limit: " << world.getLockdownLimit();
-    Window(nDays, world, mondo, dim.y, dim.x, 1850, 1000);
+    Window(nDays, world, mondo, 1850, 1000);
 }

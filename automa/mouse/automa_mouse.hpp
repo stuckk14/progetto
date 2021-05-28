@@ -284,6 +284,139 @@ inline World evolve(World &current, int day)
   return next;
 }
 
+class Graphics
+{
+  sf::RenderWindow &window;
+  sf::VertexArray mappa;
+  sf::Image image;
+  short width, height, imm_width, imm_height;
+  float pan_x, pan_y, width_p, height_p, pixel_ratio;
+
+public:
+  Graphics(sf::RenderWindow &win_in, sf::Image& image_in, short imm_width_in, short imm_height_in) : window{win_in}, image{image_in}, imm_width{imm_width_in}, imm_height{imm_height_in}
+  {
+    mappa.resize(imm_height * imm_width * 8);
+    pan_x = 0.025 * width, pan_y = 0.025 * height;
+    width_p = .95 * width / imm_width, height_p = .95 * height / imm_height;
+    pixel_ratio = width_p;
+    if (width_p > height_p)
+      pixel_ratio = height_p;
+  }
+  //Graphics(short width_in, short height_in) : width{width_in}, height{height_in} {}
+
+  void loadImage(World &pan)
+  {
+    /*if (!image.loadFromFile(name))
+      std::cerr << "Errore nell'apertura di: " << name;
+    unsigned short imm_height = image.getSize().y, imm_width = image.getSize().x;*/
+    for (unsigned short row = 0; row < imm_height; ++row)
+    {
+      for (unsigned short col = 0; col < imm_width; ++col)
+      {
+        if (image.getPixel(col, row).r == 255 && image.getPixel(col, row).g < 230)
+          pan.setCondition(row, col) = Condition::Port;
+
+        else if (image.getPixel(col, row).g > 250 && image.getPixel(col, row).r < 230)
+          pan.setCondition(row, col) = Condition::Airport;
+
+        else if (image.getPixel(col, row).r < 100)
+          pan.setCondition(row, col) = Condition::Susceptible;
+
+        else
+          pan.setCondition(row, col) = Condition::Wall;
+      }
+    }
+  }
+  void createArray(const World &pan)
+  {
+    unsigned short r{};
+    float lato = 1.f, spaziatura = 2.f;
+    unsigned short imm_height = image.getSize().y, imm_width = image.getSize().x;
+    //std::cerr << "imm_height: " << imm_height << "\timm_width: " << imm_width << "\n\n";
+    for (unsigned short row = 0; row < imm_height; ++row)
+    {
+      unsigned short c = 0;
+      for (unsigned short col = 0; col < imm_width; ++col)
+      {
+        c += 4;
+        int index{r * imm_width * 4 + c};
+        mappa[index].position = sf::Vector2f(col * 2 * lato + pan_x,                      row * 2 * lato + pan_y);
+        mappa[index + 1].position = sf::Vector2f(col * 2 * lato + pan_x,                  row * 2 * lato + pan_y + spaziatura);
+        mappa[index + 2].position = sf::Vector2f(col * 2 * lato + pan_x + spaziatura,     row * 2 * lato + pan_y + spaziatura);
+        mappa[index + 3].position = sf::Vector2f(col * 2 * lato + pan_x + spaziatura,     row * 2 * lato + pan_y);
+
+        mappa[index].color = sf::Color::Black;
+        mappa[index + 1].color = sf::Color::Black;
+        mappa[index + 2].color = sf::Color::Black;
+        mappa[index + 3].color = sf::Color::Black;
+
+        switch (pan.getCondition(row, col))
+        {
+          case Condition::Susceptible:
+          {
+            mappa[index].color = sf::Color::Blue;
+            mappa[index + 1].color = sf::Color::Blue;
+            mappa[index + 2].color = sf::Color::Blue;
+            mappa[index + 3].color = sf::Color::Blue;
+            break;
+          }
+          case Condition::Infected:
+          {
+            mappa[index].color = sf::Color::Red;
+            mappa[index + 1].color = sf::Color::Red;
+            mappa[index + 2].color = sf::Color::Red;
+            mappa[index + 3].color = sf::Color::Red;
+            break;
+          }
+          case Condition::Healed:
+          {
+            mappa[index].color = sf::Color::Green;
+            mappa[index + 1].color = sf::Color::Green;
+            mappa[index + 2].color = sf::Color::Green;
+            mappa[index + 3].color = sf::Color::Green;
+            break;
+          }
+          case Condition::Dead:
+          {
+            mappa[index].color = sf::Color{220, 200, 0, 255};
+            mappa[index + 1].color = sf::Color{220, 200, 0, 255};
+            mappa[index + 2].color = sf::Color{220, 200, 0, 255};
+            mappa[index + 3].color = sf::Color{220, 200, 0, 255};
+            break;
+          }
+          case Condition::Port:
+          {
+            mappa[index].color = sf::Color::Magenta;
+            mappa[index + 1].color = sf::Color::Magenta;
+            mappa[index + 2].color = sf::Color::Magenta;
+            mappa[index + 3].color = sf::Color::Magenta;
+            break;
+          }
+          case Condition::Airport:
+          {
+            mappa[index].color = sf::Color::Cyan;
+            mappa[index + 1].color = sf::Color::Cyan;
+            mappa[index + 2].color = sf::Color::Cyan;
+            mappa[index + 3].color = sf::Color::Cyan;
+            break;
+          }
+          default:
+          {
+            break;
+          }
+        }
+      }
+      ++r;
+    }
+  }
+  void drawArray()
+  {
+    window.clear(sf::Color::Black);
+    window.draw(mappa);
+    window.display();
+  }
+};
+
 inline void WriteText(sf::RenderWindow &window, const std::string &string, short pos_x, short pos_y)
 {
   sf::Font font;
@@ -313,7 +446,7 @@ inline bool operator<(sf::Color right, sf::Color left)
 {
   return right.toInteger() < left.toInteger();
 }
-void Window(int T, World &pan, sf::Image immagine, int n_righe, int n_col, short width = 800, short height = 600)
+void Window(int T, World &pan, sf::Image image, short width = 800, short height = 600)
 {
   sf::RenderWindow window(sf::VideoMode(width, height), "Andamento S, I e R");
   //sf::CircleShape point(7.f);
@@ -321,119 +454,50 @@ void Window(int T, World &pan, sf::Image immagine, int n_righe, int n_col, short
   background.setFillColor(sf::Color::Black);
   window.draw(background);
 
-  sf::Vector2u dim = immagine.getSize();
+  Graphics graph(window, image, image.getSize().x, image.getSize().y);
+
+  sf::Vector2u dim = image.getSize();
   short imm_height = dim.x, imm_width = dim.y;
   const float pan_x = 0.025 * width, pan_y = 0.025 * height;
-  const float width_p = .95 * width / n_col, height_p = .95 * height / n_righe;
+  const float width_p = .95 * width / imm_height, height_p = .95 * height / imm_width;
   float pixel_ratio = width_p;
   if (width_p > height_p)
     pixel_ratio = height_p;
-  sf::RectangleShape point(sf::Vector2f(1.f, 1.f));
-  for (short row = 0; row < imm_height; ++row) //Creazione da immagine
-    for (short col = 0; col < imm_width; ++col)
-    {
-      if (immagine.getPixel(row, col).r == 255 && immagine.getPixel(row, col).g < 230)
-        pan.setCondition(col, row) = Condition::Port;
-      else if (immagine.getPixel(row, col).g > 250 && immagine.getPixel(row, col).r < 230)
-        pan.setCondition(col, row) = Condition::Airport;
-      else if (immagine.getPixel(row, col).b > 150)
-        pan.setCondition(col, row) = Condition::Wall;
-      else
-        pan.setCondition(col, row) = Condition::Susceptible;
-    }
+  graph.loadImage(pan);
+  
   while (!sf::Mouse::isButtonPressed(sf::Mouse::Button::Right)) //Scelta da mouse
   {
     while (!sf::Mouse::isButtonPressed(sf::Mouse::Button::Left))
       ;
     sf::Vector2f pos{sf::Mouse::getPosition(window)};
-    int pos_x = std::round((pos.x - pan_x - 6.f) / pixel_ratio);
-    int pos_y = std::round((pos.y - pan_y - 6.f) / pixel_ratio);
+    int pos_x = std::round((pos.x) / 2.);
+    int pos_y = std::round((pos.y) / 2.);
     std::cerr << "x: " << pos.x << "    col: " << pos_x << "\ty: " << pos.y << "   row:" << pos_y << "\n\n";
-    if (pos_x >= n_col || pos_x < 0 || pos_y >= n_righe || pos_y < 0)
-      continue;
+    //if (pos_x >= imm_width || pos_x < 0 || pos_y >= imm_height || pos_y < 0)
+      //continue;
     Condition state = pan.getCondition(pos_y, pos_x);
+    if (state != Condition::Susceptible && state != Condition::Infected && state != Condition::Empty)
+      continue;
     char state_i = static_cast<char>(state);
     state = static_cast<Condition>((state_i + 1) % 3);
     pan.setCondition(pos_y, pos_x) = state;
-    for (int row = 0; row < n_righe; ++row)
-    {
-      for (int col = 0; col < n_col; ++col)
-      {
-        point.setFillColor(sf::Color::Black);
-        state = pan.getCondition(row, col);
-        point.setPosition(col * 2.f + pan_x, row * 2.f + pan_y);
-        switch (state)
-        {
-        case Condition::Susceptible:
-          point.setFillColor(sf::Color::Blue);
-          break;
-        case Condition::Infected:
-          point.setFillColor(sf::Color::Red);
-          break;
-        case Condition::Healed:
-          point.setFillColor(sf::Color::Green);
-          break;
-        case Condition::Dead:
-          point.setFillColor(sf::Color{220, 200, 0, 255});
-          break;
-        case Condition::Port:
-          point.setFillColor(sf::Color::Magenta);
-          break;
-        case Condition::Airport:
-          point.setFillColor(sf::Color::Cyan);
-          break;
-        default:
-          break;
-        }
-        window.draw(point);
-      }
-    }
-    window.display();
-    std::this_thread::sleep_for(std::chrono::milliseconds(250));
+    graph.createArray(pan);
+    graph.drawArray();
+    //std::this_thread::sleep_for(std::chrono::milliseconds(250));
   }
   Condition state;
   bool lockdown = false;
   int deaths = 0;
   for (int i = 1; i <= T; ++i) //Evoluzione
   {
-    window.clear(sf::Color::Black);
-    for (int row = 0; row < n_righe; ++row)
-    {
-      for (int col = 0; col < n_col; ++col)
-      {
-        point.setFillColor(sf::Color::Black);
-        state = pan.getCondition(row, col);
-        point.setPosition(col * 2.f + pan_x, row * 2.f + pan_y);
-        switch (state)
-        {
-        case Condition::Susceptible:
-          point.setFillColor(sf::Color::Blue);
-          break;
-        case Condition::Infected:
-          point.setFillColor(sf::Color::Red);
-          break;
-        case Condition::Healed:
-          point.setFillColor(sf::Color::Green);
-          break;
-        case Condition::Dead:
-          point.setFillColor(sf::Color{220, 200, 0, 255});
-          break;
-        case Condition::Port:
-          point.setFillColor(sf::Color::Magenta);
-          break;
-        case Condition::Airport:
-          point.setFillColor(sf::Color::Cyan);
-          break;
-        default:
-          break;
-        }
-        window.draw(point);
-      }
-    }
+    graph.createArray(pan);
+    graph.drawArray();
+
+    //Conteggi
     int infected = 0, healed = 0, empty = 0, suscep = 0;
-    for (int r = 0; r < n_righe; r++)
+    for (int r = 0; r < imm_height; r++)
     {
-      for (int c = 0; c < n_col; ++c)
+      for (int c = 0; c < imm_width; ++c)
       {
         state = pan.getCondition(r, c);
         if (state == Condition::Infected)
@@ -451,8 +515,10 @@ void Window(int T, World &pan, sf::Image immagine, int n_righe, int n_col, short
     std::string dati{"Day: "};
     dati = dati + std::to_string(i) + "   Susceptibles: " + std::to_string(suscep) + "   Infected: " + std::to_string(infected) + "   Healed: " + std::to_string(healed) + "   Dead: " + std::to_string(deaths);
     WriteText(window, dati, width / 2, pan_y);
+
+    //Vaccinazioni
     std::default_random_engine eng{std::random_device{}()};
-    std::uniform_int_distribution<int> dist_righe{0, n_righe - 1}, dist_col{0, n_col - 1};
+    std::uniform_int_distribution<int> dist_righe{0, imm_height - 1}, dist_col{0, imm_width - 1};
     int vaccinatiPerGiorno = std::round(pan.getNVaccinati() / 10.);
     int totVaccinati = 0;
     for (int j = 0; j != vaccinatiPerGiorno && i >= T / 5 && i < ((T / 5) + 10); ++j)
@@ -472,6 +538,8 @@ void Window(int T, World &pan, sf::Image immagine, int n_righe, int n_col, short
       else
         break;
     }
+
+    //Lockdown
     double percentageInfected = static_cast<double>(infected) / suscep;
     //std::cout << pan.getLockdownLimit() << std::endl;
     //std::cout << "a: " << a << "percentage: " << percentageInfected << "\n\n";
@@ -491,8 +559,7 @@ void Window(int T, World &pan, sf::Image immagine, int n_righe, int n_col, short
               << "Percentuale infetti: " << (percentageInfected * 100) << "% \n\n"
               << std::endl;
 
-    window.display();
-  //  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    //  std::this_thread::sleep_for(std::chrono::milliseconds(100));
     pan = evolve(pan, i);
   }
   sf::Event chiusura;
