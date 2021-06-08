@@ -1,8 +1,9 @@
-world_size 50
-n_days 250
-beta 0.5
-gamma 0.3
-death_rate 0.02
-lockdown_limit 0.25
-days_to_death 3
-nVaccinati 10
+world_righe 428
+world_colonne 815
+n_days 450
+beta 0.95
+gamma 0.15
+death_rate 0.03
+lockdown_limit 1
+days_to_death 18
+nVaccinati 100
