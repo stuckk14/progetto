@@ -1,9 +1,10 @@
-#include <chrono>
+#include "pandemy.hpp"
+#include "graphics.hpp"
 #include <iostream>
 #include <random>
-#include <thread>
 #include <fstream>
-#include "automa_mouse.hpp"
+#include <SFML/Graphics.hpp>
+
 bool controllo(double min, double max, double val)
 {
     return val <= max && val >= min;
@@ -14,7 +15,7 @@ bool controllo(int min, int max, int val)
 }
 int main()
 {
-    int world_righe, world_colonne, nDays;
+    int nDays;
     double beta, gamma, deathRate, lockdownLimit;
     int daysToDeath, nVaccinati;
     std::ifstream file;
@@ -28,7 +29,7 @@ int main()
         std::cerr << "Errore caricamento immagine";
     sf::Vector2u dim {mondo.getSize()};
 
-    file >> bin >> world_righe >> bin >> world_colonne >> bin >> nDays >> bin >> beta >> bin >> gamma >> bin >> deathRate >> bin >> lockdownLimit >> bin >> daysToDeath >> bin >> nVaccinati;
+    file >> bin >> nDays >> bin >> beta >> bin >> gamma >> bin >> deathRate >> bin >> lockdownLimit >> bin >> daysToDeath >> bin >> nVaccinati;
     file.close();
     if (!controllo(0., 1., beta))
     {
@@ -43,16 +44,6 @@ int main()
     if (!controllo(0, 10000, nDays))
     {
         std::cerr << "Il numero dei giorni della simulazione e' fuori dal range";
-        return 1;
-    }
-    if (!controllo(0, 1500, world_righe))
-    {
-        std::cerr << "Il lato della griglia e' fuori dal range";
-        return 1;
-    }
-    if (!controllo(0, 1500, world_colonne))
-    {
-        std::cerr << "Il lato della griglia e' fuori dal range";
         return 1;
     }
     if (!controllo(0., 1., deathRate))
@@ -70,7 +61,7 @@ int main()
         std::cerr << "Il tempo di risoluzione e' fuori dal range";
         return 1;
     }
-    if (!controllo(0, world_righe * world_colonne, nVaccinati))
+    if (!controllo(0, 60000, nVaccinati))
     {
         std::cerr << "Il numero di vaccinabili e' fuori dal range";
         return 1;
