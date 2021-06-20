@@ -62,19 +62,19 @@ public:
   Condition const &getCondition(int, int) const noexcept;
   Condition &setCondition(int, int) noexcept;
   int &Time(int, int) noexcept;
-  int const &Time(int, int) const noexcept;
+//  int const &Time(int, int) const noexcept;
   friend bool operator==(World const&, World const&);
 };
 
 
 template <Condition C>
-int neighbours(World const &world, int r, int c);
+int neighbours(World const &, int, int);
 
-bool probability(double prob);
+bool probability(double);
 
 void move_port(World &, Condition , int, int);
 
 void move_cell(World &, int);
 
-World evolve(World &, int);
+void evolve(World &, int);
 #endif

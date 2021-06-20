@@ -73,11 +73,11 @@ int &World::Time(int r, int c) noexcept
     auto const index = r * n_col + c;
     return m_grid[index].time;
 }
-int const &World::Time(int r, int c) const noexcept
+/*int const &World::Time(int r, int c) const noexcept
 {
     auto const index = r * n_col + c;
     return m_grid[index].time;
-}
+}*/
 
 bool operator==(World const &l, World const &r)
 {
@@ -219,20 +219,22 @@ void move_cell(World &current, int day)
         current.setCondition(fromTo[i].r_f, fromTo[i].c_f) = Condition::Empty;
     }
 }
-
-World evolve(World &current, int day)
+#include <iostream>
+void evolve(World& current, int day)
 {
+    //std::cerr << "day: " <<day <<"\n\n\n";
     double beta = current.get_beta(), gamma = current.get_gamma(), deathRate = current.get_deathRate();
     int resTime = current.get_res_time();
     int const n_righe = current.getNRighe(), n_col = current.getNCol();
-    World next(n_righe, n_col, beta, gamma, deathRate, current.getLockdownLimit(), resTime, current.getNVaccinati());
     move_cell(current, day);
+    World next = current;
+    //World next(n_righe, n_col, beta, gamma, deathRate, current.getLockdownLimit(), resTime, current.getNVaccinati());
     for (int r = 0; r != n_righe; ++r)
     {
         for (int c = 0; c != n_col; ++c)
         {
-            next.setCondition(r, c) = current.getCondition(r, c);
-            next.Time(r, c) = current.Time(r, c);
+            //next.setCondition(r, c) = current.getCondition(r, c);
+            //next.Time(r, c) = current.Time(r, c);
             if (current.getCondition(r, c) == Condition::Dead)
                 next.setCondition(r, c) = Condition::Empty;
             if (current.getCondition(r, c) == Condition::Infected && current.Time(r, c) >= resTime)
@@ -247,7 +249,6 @@ World evolve(World &current, int day)
             }
             else if (current.getCondition(r, c) == Condition::Susceptible)
             {
-                //da studiare
                 int n_infected = neighbours<Condition::Infected>(current, r, c);
                 //double beta0 = beta * (7. / 16.);
                 double beta_bis = beta * (n_infected / 8.);
@@ -260,5 +261,5 @@ World evolve(World &current, int day)
             ++next.Time(r, c);
         }
     }
-    return next;
+    current=next;
 }
