@@ -1,6 +1,12 @@
-#include <iostream>
 #include "pandemy.hpp"
 #include "graphics.hpp"
+#include <iostream>
+#include <thread>
+
+short Graphics::getPanY() const
+{
+    return pan_y;
+}
 
 void Graphics::loadImage(World &pan)
 {
@@ -136,28 +142,10 @@ void Graphics::WriteText(const std::string &string, short pos_x, short pos_y)
     text.setPosition(pos_x - text_w / 2, (pos_y - text_h));
     window.draw(text);
 }
-
-void Window(int T, World &pan, sf::Image image, short width, short height)
+void Graphics::chooseMouse(World &pan)
 {
-    sf::RenderWindow window(sf::VideoMode(width, height), "Simulazione pandemia globale");
-    sf::RectangleShape background(sf::Vector2f(width, height));
-    background.setFillColor(sf::Color::Black);
-    window.draw(background);
-
-    Graphics graph(window, image, image.getSize().x, image.getSize().y);
-    sf::Vector2u dim = image.getSize();
-    short imm_height = dim.x, imm_width = dim.y;
-    const float pan_x = 0.025 * imm_width, pan_y = 0.025 * imm_height;
-    //const float width_p = .95 * width / imm_height, height_p = .95 * height / imm_width;
-    /*float pixel_ratio = width_p;
-  if (width_p > height_p)
-    pixel_ratio = height_p;*/
-    graph.loadImage(pan);
-    graph.createArray(pan);
-    graph.drawArray();
-    window.display();
-    bool flagIn = true;
-    while (flagIn)
+    std::cerr << "imm_width: " << imm_width << "\twidth: " << width << "\tpan_x: " << pan_x << "\n\n";
+    while (1)
     {
         sf::Event event;
         //bool infected = true;
@@ -165,10 +153,7 @@ void Window(int T, World &pan, sf::Image image, short width, short height)
         {
             window.pollEvent(event);
             if (event.type == sf::Event::KeyPressed)
-            {
-                flagIn = false;
-                break;
-            }
+                return;
             if (event.type == sf::Event::MouseButtonPressed)
             {
                 //if (event.mouseButton.button == sf::Mouse::Button::Right)
@@ -176,41 +161,58 @@ void Window(int T, World &pan, sf::Image image, short width, short height)
                 break;
             }
         }
-        if (flagIn)
-        {
-            sf::Vector2f pos{sf::Mouse::getPosition(window)};
-            int pos_x = std::round(pos.x / 2.);
-            int pos_y = std::round(pos.y / 2.);
-            std::cerr << "x: " << pos.x << "    col: " << pos_x << "\ty: " << pos.y << "   row:" << pos_y << "\n\n";
-            Condition state = pan.getCondition(pos_y, pos_x);
-            if (state != Condition::Susceptible && state != Condition::Infected && state != Condition::Empty)
-                continue;
-            char state_i = static_cast<char>(state);
-            state = static_cast<Condition>((state_i + 1) % 3);
-            pan.setCondition(pos_y, pos_x) = state;
+        sf::Vector2f pos{sf::Mouse::getPosition(window)};
+        int pos_x = std::round((pos.x - pan_x) / 2.);
+        int pos_y = std::round((pos.y - pan_y) / 2.);
+        std::cerr << "x: " << pos.x << "    col: " << pos_x << "\ty: " << pos.y << "   row:" << pos_y << "\n\n";
+        Condition state = pan.getCondition(pos_y, pos_x);
+        if (state != Condition::Susceptible && state != Condition::Infected && state != Condition::Empty)
+            continue;
+        char state_i = static_cast<char>(state);
+        state = static_cast<Condition>((state_i + 1) % 3);
+        pan.setCondition(pos_y, pos_x) = state;
 
-            graph.createArray(pan);
-            graph.drawArray();
-            graph.WriteText("Press any key to start the simulation", width / 2, height - pan_y);
-            window.display();
-            //std::this_thread::sleep_for(std::chrono::milliseconds(250));
-        }
+        this->createArray(pan);
+        this->drawArray();
+        this->WriteText("Press any key to start the simulation", width / 2, height - pan_y);
+        window.display();
+        //std::this_thread::sleep_for(std::chrono::milliseconds(250));
     }
+}
+
+void Window(int duration, World &pan, sf::Image image, short width, short height)
+{
+    sf::RenderWindow window(sf::VideoMode(width, height), "Simulazione pandemia globale");
+    sf::RectangleShape background(sf::Vector2f(width, height));
+    background.setFillColor(sf::Color::Black);
+    window.draw(background);
+
+    Graphics graph(window, image, width, height);
+    const float pan_x{}, pan_y = graph.getPanY();
+
+    graph.loadImage(pan);
+    graph.createArray(pan);
+    graph.drawArray();
+    window.display();
+    graph.chooseMouse(pan);
+
     Condition state;
+    World oldPan = pan;
     bool lockdown = false;
     int deaths = 0;
-    for (int i = 1; i <= T; ++i) //Evoluzione
+    for (int i = 1; i <= duration; ++i) //Evoluzione
     {
-        graph.createArray(pan);
+        std::thread second(evolve, std::ref(pan), i);
+        graph.createArray(oldPan);
         graph.drawArray();
 
         //Conteggi
         int infected = 0, healed = 0, empty = 0, suscep = 0;
-        for (int r = 0; r < pan.getNRighe(); r++)
+        for (int r = 0; r < oldPan.getNRighe(); r++)
         {
-            for (int c = 0; c < pan.getNCol(); ++c)
+            for (int c = 0; c < oldPan.getNCol(); ++c)
             {
-                state = pan.getCondition(r, c);
+                state = oldPan.getCondition(r, c);
                 if (state == Condition::Infected)
                     ++infected;
                 else if (state == Condition::Healed)
@@ -229,21 +231,21 @@ void Window(int T, World &pan, sf::Image image, short width, short height)
 
         //Vaccinazioni
         std::default_random_engine eng{std::random_device{}()};
-        std::uniform_int_distribution<int> dist_righe{0, pan.getNRighe() - 1}, dist_col{0, pan.getNCol() - 1};
-        int vaccinatiPerGiorno = std::round(pan.getNVaccinati() / 10.);
+        std::uniform_int_distribution<int> dist_righe{0, oldPan.getNRighe() - 1}, dist_col{0, oldPan.getNCol() - 1};
+        int vaccinatiPerGiorno = std::round(oldPan.getNVaccinati() / 10.);
         int totVaccinati = 0;
-        for (int j = 0; j != vaccinatiPerGiorno && i >= T / 5 && i < ((T / 5) + 10); ++j)
+        for (int j = 0; j != vaccinatiPerGiorno && i >= duration / 5 && i < ((duration / 5) + 10); ++j)
         {
             auto r = dist_righe(eng);
             auto c = dist_col(eng);
             if (totVaccinati != suscep)
             {
-                while (pan.getCondition(r, c) != Condition::Susceptible)
+                while (oldPan.getCondition(r, c) != Condition::Susceptible)
                 {
                     r = dist_righe(eng);
                     c = dist_col(eng);
                 }
-                pan.setCondition(r, c) = Condition::Healed;
+                oldPan.setCondition(r, c) = Condition::Healed;
                 ++totVaccinati;
             }
             else
@@ -252,23 +254,25 @@ void Window(int T, World &pan, sf::Image image, short width, short height)
 
         //Lockdown
         double percentageInfected = static_cast<double>(infected) / suscep;
-        if (lockdown == false && percentageInfected >= pan.getLockdownLimit())
+        if (lockdown == false && percentageInfected >= oldPan.getLockdownLimit())
         {
             std::cout << "Inizio lockdown!";
-            pan.setLockdown(true);
+            oldPan.setLockdown(true);
             lockdown = true;
         }
-        else if (lockdown == true && percentageInfected <= (pan.getLockdownLimit()) * 0.9)
+        else if (lockdown == true && percentageInfected <= (oldPan.getLockdownLimit()) * 0.9)
         {
             std::cout << "Fine lockdown!";
-            pan.setLockdown(false);
+            oldPan.setLockdown(false);
             lockdown = false;
         }
-        std::cerr << "\nDays: " << i << "\tInfected: " << infected << "\tHealed: " << healed << "\tEmpty: " << empty
-                  << "Percentuale infetti: " << (percentageInfected * 100) << "% \n\n";
+        //std::cerr << "\nDays: " << i << "\tInfected: " << infected << "\tHealed: " << healed << "\tEmpty: " << empty
+          //        << "Percentuale infetti: " << (percentageInfected * 100) << "% \n\n";
 
         window.display();
-        pan = evolve(pan, i);
+        second.join();
+        oldPan = pan;
+        //oldPan = evolve(oldPan, i);
     }
     sf::Event chiusura;
     while (window.waitEvent(chiusura))
