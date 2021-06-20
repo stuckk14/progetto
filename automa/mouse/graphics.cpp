@@ -32,11 +32,12 @@ void Graphics::loadImage(World &pan)
         }
     }
 }
-void Graphics::createArray(const World &pan)
+SIR Graphics::createArray(const World &pan)
 {
     unsigned short r{};
     float lato = 1.f, spaziatura = 2.f;
     unsigned short imm_height = image.getSize().y, imm_width = image.getSize().x;
+    SIR state;
     //std::cerr << "imm_height: " << imm_height << "\timm_width: " << imm_width << "\n\n";
     for (unsigned short row = 0; row < imm_height; ++row)
     {
@@ -63,6 +64,7 @@ void Graphics::createArray(const World &pan)
                 mappa[index + 1].color = sf::Color::Blue;
                 mappa[index + 2].color = sf::Color::Blue;
                 mappa[index + 3].color = sf::Color::Blue;
+                ++state.S;
                 break;
             }
             case Condition::Infected:
@@ -71,6 +73,7 @@ void Graphics::createArray(const World &pan)
                 mappa[index + 1].color = sf::Color::Red;
                 mappa[index + 2].color = sf::Color::Red;
                 mappa[index + 3].color = sf::Color::Red;
+                ++state.I;
                 break;
             }
             case Condition::Healed:
@@ -79,6 +82,7 @@ void Graphics::createArray(const World &pan)
                 mappa[index + 1].color = sf::Color::Green;
                 mappa[index + 2].color = sf::Color::Green;
                 mappa[index + 3].color = sf::Color::Green;
+                ++state.H;
                 break;
             }
             case Condition::Dead:
@@ -87,6 +91,7 @@ void Graphics::createArray(const World &pan)
                 mappa[index + 1].color = sf::Color{220, 200, 0, 255};
                 mappa[index + 2].color = sf::Color{220, 200, 0, 255};
                 mappa[index + 3].color = sf::Color{220, 200, 0, 255};
+                ++state.D;
                 break;
             }
             case Condition::Port:
@@ -121,6 +126,7 @@ void Graphics::createArray(const World &pan)
         }
         ++r;
     }
+    return state;
 }
 void Graphics::drawArray()
 {
@@ -196,24 +202,24 @@ void Window(int duration, World &pan, sf::Image image, short width, short height
     window.display();
     graph.chooseMouse(pan);
 
-    Condition state;
+    //Condition box;
     World oldPan = pan;
     bool lockdown = false;
     int deaths = 0;
     for (int i = 1; i <= duration; ++i) //Evoluzione
     {
         std::thread second(evolve, std::ref(pan), i);
-        graph.createArray(oldPan);
+        SIR state = graph.createArray(oldPan);
         graph.drawArray();
-
+/*
         //Conteggi
         int infected = 0, healed = 0, empty = 0, suscep = 0;
         for (int r = 0; r < oldPan.getNRighe(); r++)
         {
             for (int c = 0; c < oldPan.getNCol(); ++c)
             {
-                state = oldPan.getCondition(r, c);
-                if (state == Condition::Infected)
+                box = oldPan.getCondition(r, c);
+                if (box == Condition::Infected)
                     ++infected;
                 else if (state == Condition::Healed)
                     ++healed;
@@ -224,9 +230,10 @@ void Window(int duration, World &pan, sf::Image image, short width, short height
                 else if (state == Condition::Dead)
                     ++deaths;
             }
-        }
+        }*/
+        deaths += state.D;
         std::string dati{"Day: "};
-        dati = dati + std::to_string(i) + "   Susceptibles: " + std::to_string(suscep) + "   Infected: " + std::to_string(infected) + "   Healed: " + std::to_string(healed) + "   Dead: " + std::to_string(deaths);
+        dati = dati + std::to_string(i) + "   Susceptibles: " + std::to_string(state.S) + "   Infected: " + std::to_string(state.I) + "   Healed: " + std::to_string(state.H) + "   Dead: " + std::to_string(deaths);
         graph.WriteText(dati, width / 2, height - pan_y);
 
         //Vaccinazioni
@@ -238,7 +245,7 @@ void Window(int duration, World &pan, sf::Image image, short width, short height
         {
             auto r = dist_righe(eng);
             auto c = dist_col(eng);
-            if (totVaccinati != suscep)
+            if (totVaccinati != state.S)
             {
                 while (oldPan.getCondition(r, c) != Condition::Susceptible)
                 {
@@ -253,7 +260,7 @@ void Window(int duration, World &pan, sf::Image image, short width, short height
         }
 
         //Lockdown
-        double percentageInfected = static_cast<double>(infected) / suscep;
+        double percentageInfected = static_cast<double>(state.I) / state.S;
         if (lockdown == false && percentageInfected >= oldPan.getLockdownLimit())
         {
             std::cout << "Inizio lockdown!";

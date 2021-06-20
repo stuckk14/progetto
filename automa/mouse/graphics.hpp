@@ -3,6 +3,9 @@
 #include <SFML/Graphics.hpp>
 #ifndef GRAPHICS_HPP
 #define GRAPHICS_HPP
+struct SIR{
+    int S{}, I{}, H{}, D{};
+};
 class Graphics
 {
   sf::RenderWindow &window;
@@ -27,7 +30,7 @@ public:
   short getPanY() const;
 
   void loadImage(World &);
-  void createArray(const World &);
+  SIR createArray(const World &);
   void drawArray();
   void WriteText(const std::string &, short, short);
   void chooseMouse(World&);
