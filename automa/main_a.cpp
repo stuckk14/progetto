@@ -1,73 +1,84 @@
-#include <chrono>
+#include "pandemy.hpp"
+#include "graphics.hpp"
 #include <iostream>
 #include <random>
-#include <thread>
-#include "automa_sfml.hpp"
+#include <fstream>
+#include <stdexcept>
+#include <SFML/Graphics.hpp>
 
-/*void print(std::ostream &os, World const &world)
+bool controllo(double min, double max, double val)
 {
-    constexpr auto clear = "\033[2J";
-    const auto N = world.size();
-
-    os << clear;
-    os << '+' << std::string(N, '-') << "+\n";
-    for (int r = 0; r != N; ++r)
-    {
-        os << '|';
-        for (int c = 0; c != N; ++c)
-        {
-            switch (world.condition(r, c))
-            {
-            case Condition::Infected:
-                std::cout << '*';
-                break;
-            case Condition::Removed:
-                std::cout << 'x';
-                break;
-            default:
-                std::cout << ' ';
-                break;
-            }
-        }
-        os << "|\n";
-    }
-    os << '+' << std::string(N, '-') << "+\n";
+    return val <= max && val >= min;
 }
-*/
+bool controllo(int min, int max, int val)
+{
+    return val <= max && val >= min;
+}
 int main()
 {
-    constexpr int world_size = 50;
-    double beta = 0.05, gamma = 0.3, deathRate = 0.02, lockdownLimit = 0.25;
-    int daysToDeath = 5, nVaccinati = 150;
-    World world(world_size, beta, gamma, deathRate, lockdownLimit, daysToDeath, nVaccinati);
-
+    try
     {
-        std::default_random_engine eng{std::random_device{}()};
-        std::uniform_int_distribution<int> dist{0, world_size - 1};
+        int nDays;
+        double beta, gamma, deathRate, lockdownLimit;
+        int daysToDeath, nVaccinati;
+        std::ifstream file;
+        file.open("input.dat");
+        if (!file.is_open())
+            std::cerr << "Errore nell'apertura del file";
+        std::string bin;
+        sf::Image mondo;
 
-        for (int i = 0; i != world_size * world_size / 5; ++i)
+        if (!mondo.loadFromFile("Mondo_grande_porti.psd"))
+            std::cerr << "Errore caricamento immagine";
+        sf::Vector2u dim{mondo.getSize()};
+
+        file >> bin >> nDays >> bin >> beta >> bin >> gamma >> bin >> deathRate >> bin >> lockdownLimit >> bin >> daysToDeath >> bin >> nVaccinati;
+        file.close();
+        if (!controllo(0., 1., beta))
         {
-            auto r = dist(eng);
-            auto c = dist(eng);
-            for (; world.getCondition(r, c) == Condition::Infected;
-                r = dist(eng), c = dist(eng));
-            world.setCondition(r, c) = Condition::Infected;
+            std::cerr << "Beta e' fuori dal range";
+            return 1;
         }
-        for (int i = 0; i != world_size * world_size / 10; ++i)
+        if (!controllo(0., 1., gamma))
         {
-            auto r = dist(eng);
-            auto c = dist(eng);
-            for (; world.getCondition(r, c) == Condition::Empty; r = dist(eng), c = dist(eng));
-            world.setCondition(r, c) = Condition::Empty;
+            std::cerr << "Gamma e' fuori dal range";
+            return 1;
         }
+        if (!controllo(0, 10000, nDays))
+        {
+            std::cerr << "Il numero dei giorni della simulazione e' fuori dal range";
+            return 1;
+        }
+        if (!controllo(0., 1., deathRate))
+        {
+            std::cerr << "Il tasso di letalita' e' fuori dal range";
+            return 1;
+        }
+        if (!controllo(0., 1., lockdownLimit))
+        {
+            std::cerr << "La soglia di attivazione del lockdown e' fuori dal range";
+            return 1;
+        }
+        if (!controllo(0, 10000, daysToDeath))
+        {
+            std::cerr << "Il tempo di risoluzione e' fuori dal range";
+            return 1;
+        }
+        if (!controllo(0, 60000, nVaccinati))
+        {
+            std::cerr << "Il numero di vaccinabili e' fuori dal range";
+            return 1;
+        }
+        World world(dim.y, dim.x, beta, gamma, deathRate, lockdownLimit, daysToDeath, nVaccinati);
+        std::cerr << "lockdown limit: " << world.getLockdownLimit();
+        Window(nDays, world, mondo, 1850, 1000);
     }
-    std::cout<<"lockdown limit: " << world.getLockdownLimit();
-    Window(200, world, world_size, 1280, 720);
-    /*
-    for (int i = 0; i != 200; ++i)
+    catch (std::runtime_error &e)
     {
-        world = evolve(world);
-        print(std::cout, world);
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    }*/
+        std::cerr << e.what();
+    }
+    catch (...)
+    {
+        std::cerr << "\n\nUnknown exception\n";
+    }
 }
