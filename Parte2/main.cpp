@@ -21,13 +21,14 @@ int main()
         int nDays;
         double beta, gamma, deathRate, lockdownLimit;
         int daysToDeath, nVaccinati;
+        //Input da file
         std::ifstream file;
         file.open("input.dat");
         if (!file.is_open())
             std::cerr << "Errore nell'apertura del file";
         std::string bin;
         sf::Image mondo;
-
+        //Caricamento immagine mondo
         if (!mondo.loadFromFile("Mondo_grande_porti.psd"))
             std::cerr << "Errore caricamento immagine";
         sf::Vector2u dim{mondo.getSize()};
@@ -69,9 +70,23 @@ int main()
             std::cerr << "Il numero di vaccinabili e' fuori dal range";
             return 1;
         }
+        short width, height;
+        std::cout << "Inserire dimensioni finestra (consigliate maggiori di 1660x870)";
+        std::cin >> width >> height;
+        
+        if (!controllo(0, 32767, width))
+        {
+            std::cerr << "La larghezza della finestra e' fuori dal range";
+            return 1;
+        }
+        if (!controllo(0, 32767, height))
+        {
+            std::cerr << "L'altezza della finestra e' fuori dal range";
+            return 1;
+        }
+
         World world(dim.y, dim.x, beta, gamma, deathRate, lockdownLimit, daysToDeath, nVaccinati);
-        std::cerr << "lockdown limit: " << world.getLockdownLimit();
-        Window(nDays, world, mondo, 1850, 1000);
+        Window(nDays, world, mondo, width, height);
     }
     catch (std::runtime_error &e)
     {

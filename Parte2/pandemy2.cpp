@@ -12,9 +12,9 @@ double World::get_beta() const noexcept
 void World::setLockdown(bool command) noexcept
 {
     if (command)
-        beta /= 2.;
+        beta /= 2.5;
     else
-        beta *= 2.;
+        beta *= 2.5;
 }
 
 double World::get_gamma() const noexcept
@@ -73,17 +73,11 @@ inline int &World::Time(int r, int c) noexcept
     auto const index = r * n_col + c;
     return m_grid[index].time;
 }
-/*int const &World::Time(int r, int c) const noexcept
-{
-    auto const index = r * n_col + c;
-    return m_grid[index].time;
-}*/
 
 inline bool operator==(World const &l, World const &r)
 {
     return l.m_grid == r.m_grid;
 }
-//FINE DELLA CLASSE!
 
 template <Condition C>
 inline int neighbours(World const &world, int r, int c)
@@ -147,7 +141,6 @@ inline void move_port(World &current, Condition porto, int oldR, int oldC)
     std::uniform_int_distribution<short int> dist(0, destCell.size() - 1);
 
     short int arriveCell = dist(gen);
-    //std::cerr << "i: " << i << "\tr: " << destCell[arriveCell].r <<"\tc: " << destCell[arriveCell].c << "\n\n\n";
     if (current.getCondition(destCell[arriveCell].r, destCell[arriveCell].c) == porto || current.getCondition(oldR, oldC) == porto)
         return;
     Condition temp = current.getCondition(destCell[arriveCell].r, destCell[arriveCell].c);
@@ -219,21 +212,18 @@ inline void move_cell(World &current, int day)
         current.setCondition(fromTo[i].r_f, fromTo[i].c_f) = Condition::Empty;
     }
 }
+
 void evolve(World &current, int day)
 {
-    //std::cerr << "day: " <<day <<"\n\n\n";
     double beta = current.get_beta(), gamma = current.get_gamma(), deathRate = current.get_deathRate();
     int resTime = current.get_res_time();
     int const n_righe = current.getNRighe(), n_col = current.getNCol();
     move_cell(current, day);
     World next = current;
-    //World next(n_righe, n_col, beta, gamma, deathRate, current.getLockdownLimit(), resTime, current.getNVaccinati());
     for (int r = 0; r != n_righe; ++r)
     {
         for (int c = 0; c != n_col; ++c)
         {
-            //next.setCondition(r, c) = current.getCondition(r, c);
-            //next.Time(r, c) = current.Time(r, c);
             if (current.getCondition(r, c) == Condition::Dead)
                 next.setCondition(r, c) = Condition::Empty;
             if (current.getCondition(r, c) == Condition::Infected && current.Time(r, c) >= resTime)
@@ -249,7 +239,6 @@ void evolve(World &current, int day)
             else if (current.getCondition(r, c) == Condition::Susceptible)
             {
                 int n_infected = neighbours<Condition::Infected>(current, r, c);
-                //double beta0 = beta * (7. / 16.);
                 double beta_bis = beta * (n_infected / 8.);
                 if (probability(beta_bis))
                 {

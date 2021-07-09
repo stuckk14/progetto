@@ -23,7 +23,7 @@ public:
 
   void drawAxis();
   void WriteTextGraph(const std::string &string, short pos_x, short pos_y);
-  void drawGraph(Population &state, const int i, const int duration);
+  void drawPoint(Population &state, const int i, const int duration);
 };
 
 

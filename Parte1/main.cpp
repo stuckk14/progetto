@@ -1,4 +1,3 @@
-//#include "algo.hpp"
 #include <iostream>
 #include <vector>
 #include <stdexcept>
@@ -49,6 +48,21 @@ int main()
         {
             throw std::runtime_error("Gamma e' fuori dal range\n");
         }
+        std::cout << "Inserire le dimensioni della finestra del grafico\n";
+        short width, height;
+        std::cin >> width >> height;
+
+        if (!controllo(0, 32767, width))
+        {
+            std::cerr << "La larghezza della finestra e' fuori dal range";
+            return 1;
+        }
+        if (!controllo(0, 32767, height))
+        {
+            std::cerr << "L'altezza della finestra e' fuori dal range";
+            return 1;
+        }
+
         std::cout << '\n'
                   << "Tabella riassuntiva" << '\n'
                   << std::setw(45) << "STATUS:\n\n";
@@ -59,7 +73,7 @@ int main()
                   << std::setw(18) << "INFECTED:"
                   << std::setw(18) << "REMOVED:" << "\t\tTOTAL: " << N << '\n'
                   << "==========================================================================================================" << '\n';
-        window(T, pan, N, 1280, 720);
+        window(T, pan, N, width, height);
     }
     catch (std::runtime_error &e)
     {

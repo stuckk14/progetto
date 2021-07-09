@@ -37,7 +37,6 @@ SIR Graphics::createArray(const World &pan)
     float lato = 1.f, spaziatura = 2.f;
     unsigned short imm_height = image.getSize().y, imm_width = image.getSize().x;
     SIR state;
-    //std::cerr << "imm_height: " << imm_height << "\timm_width: " << imm_width << "\n\n";
     for (unsigned short row = 0; row < imm_height; ++row)
     {
         unsigned short c = 0;
@@ -149,21 +148,16 @@ void Graphics::WriteText(const std::string &string, short pos_x, short pos_y)
 }
 void Graphics::chooseMouse(World &pan)
 {
+    sf::Event event;
     while (true)
     {
-        sf::Event event;
-        //bool infected = true;
         while (true)
         {
             window.pollEvent(event);
             if (event.type == sf::Event::KeyPressed)
                 return;
             if (event.type == sf::Event::MouseButtonPressed)
-            {
-                //if (event.mouseButton.button == sf::Mouse::Button::Right)
-                //infected = false;
                 break;
-            }
         }
         sf::Vector2f pos{sf::Mouse::getPosition(window)};
         int pos_x = std::round((pos.x - pan_x) / 2.);
@@ -179,83 +173,90 @@ void Graphics::chooseMouse(World &pan)
         this->drawArray();
         this->WriteText("Press any key to start the simulation", width / 2, height - pan_y);
         window.display();
-        //std::this_thread::sleep_for(std::chrono::milliseconds(250));
     }
 }
 
 void Window(int duration, World &pan, sf::Image image, short width, short height)
 {
     sf::RenderWindow window(sf::VideoMode(width, height), "Simulazione pandemia globale");
-    sf::RectangleShape background(sf::Vector2f(width, height));
-    background.setFillColor(sf::Color::Black);
-    window.draw(background);
+    window.clear(sf::Color::Black);
 
     Graphics graph(window, image, width, height);
     const float pan_y = graph.getPanY();
 
     graph.loadImage(pan);
-    graph.createArray(pan);
+    SIR state, oldState = graph.createArray(pan);
     graph.drawArray();
     window.display();
     graph.chooseMouse(pan);
 
-    //Condition box;
     World oldPan = pan;
-    bool lockdown = false;
-    int deaths = 0;
-    for (int i = 1; i <= duration; ++i) //Evoluzione
+    bool lockdown = false, vaccinazioni = false;
+    int deaths = 0, totVaccinati = 0;
+    //Evoluzione
+    for (int i = 1; i <= duration; ++i)
     {
-        std::thread second(evolve, std::ref(pan), i);
-        SIR state = graph.createArray(oldPan);
-        graph.drawArray();
-        deaths += state.D;
-        std::string dati{"Day: "};
-        dati = dati + std::to_string(i) + "   Susceptibles: " + std::to_string(state.S) + "   Infected: " + std::to_string(state.I) + "   Healed: " + std::to_string(state.H) + "   Dead: " + std::to_string(deaths);
-        graph.WriteText(dati, width / 2, height - pan_y);
-
         //Vaccinazioni
         std::default_random_engine eng{std::random_device{}()};
         std::uniform_int_distribution<int> dist_righe{0, oldPan.getNRighe() - 1}, dist_col{0, oldPan.getNCol() - 1};
         int vaccinatiPerGiorno = std::round(oldPan.getNVaccinati() / 10.);
-        int totVaccinati = 0;
         for (int j = 0; j != vaccinatiPerGiorno && i >= duration / 5 && i < ((duration / 5) + 10); ++j)
         {
+            vaccinazioni = true;
             auto r = dist_righe(eng);
             auto c = dist_col(eng);
-            if (totVaccinati != state.S)
+            if (totVaccinati != oldState.S)
             {
-                while (oldPan.getCondition(r, c) != Condition::Susceptible)
+                while (pan.getCondition(r, c) != Condition::Susceptible)
                 {
                     r = dist_righe(eng);
                     c = dist_col(eng);
                 }
-                oldPan.setCondition(r, c) = Condition::Healed;
+                pan.setCondition(r, c) = Condition::Healed;
                 ++totVaccinati;
             }
             else
                 break;
         }
-
+        if(totVaccinati == pan.getNVaccinati())
+            vaccinazioni = false;
+            
         //Lockdown
-        double percentageInfected = static_cast<double>(state.I) / state.S;
+        double percentageInfected = static_cast<double>(oldState.I) / oldState.S;
         if (lockdown == false && percentageInfected >= oldPan.getLockdownLimit())
         {
             std::cout << "Inizio lockdown!";
-            oldPan.setLockdown(true);
+            pan.setLockdown(true);
             lockdown = true;
         }
         else if (lockdown == true && percentageInfected <= (oldPan.getLockdownLimit()) * 0.9)
         {
             std::cout << "Fine lockdown!";
-            oldPan.setLockdown(false);
+            pan.setLockdown(false);
             lockdown = false;
         }
-        //std::cerr << "\nDays: " << i << "\tInfected: " << infected << "\tHealed: " << healed << "\tEmpty: " << empty
-        //        << "Percentuale infetti: " << (percentageInfected * 100) << "% \n\n";
+
+        std::thread second(evolve, std::ref(pan), i);
+        state = graph.createArray(oldPan);
+        graph.drawArray();
+        deaths += state.D;
+        std::string dati{"Day: "};
+        dati = dati + std::to_string(i) + "   Susceptibles: " + std::to_string(state.S) + "   Infected: " + std::to_string(state.I) + "   Healed: " + std::to_string(state.H) + "   Dead: " + std::to_string(deaths);
+        graph.WriteText(dati, width / 2, height - pan_y);
+        dati = "";
+        if(lockdown)
+            dati += "Lockdown in atto   ";
+        if(vaccinazioni)
+            dati += "Vaccinazioni in corso";
+        graph.WriteText(dati, width / 2, height - pan_y - 25);
+
+        
+        
 
         window.display();
         second.join();
         oldPan = pan;
+        oldState = state;
     }
     sf::Event chiusura;
     while (window.waitEvent(chiusura))

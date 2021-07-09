@@ -24,7 +24,7 @@ void Graphics::WriteTextGraph(const std::string &string, short pos_x, short pos_
     text.setPosition(pos_x - text_w, pos_y);
     window.draw(text);
 }
-void Graphics::drawGraph(Population &state, const int i, const int duration)
+void Graphics::drawPoint(Population &state, const int i, const int duration)
 {
     sf::CircleShape point(3.f);
     const int N = std::round(state.S + state.I + state.R);
@@ -48,19 +48,15 @@ void printSIR(Population &state, const int day)
   std::cout << std::setw(19);
   std::cout << std::round(state.I);
   std::cout << std::setw(19);
-  //std::cout << std::round(state.R) << std::setw(20) << std::round(state.S + state.I + state.R) << '\n';
   std::cout << N - std::round(state.S) - std::round(state.I) << '\n';
   std::cout << "-----------------------------------------------------------------------------------------------" << '\n';
 }
 
-void window(int T, Pandemy &pan, int N, short width = 800, short height = 600)
+void window(int T, Pandemy &pan, int N, short width, short height)
 {
   sf::RenderWindow window(sf::VideoMode(width, height), "Andamento S, I e R");
-  //sf::RectangleShape point(sf::Vector2f(3.f, 3.f));
   window.clear(sf::Color::White);
 
-  sf::RectangleShape line(sf::Vector2f(width * 0.8, 3));
-  line.setFillColor(sf::Color::Black);
   const float pan_x = 0.1 * width, pan_y = 0.9 * height;
   Graphics graph{window, width, height, pan_x, pan_y};
   graph.drawAxis();
@@ -70,12 +66,12 @@ void window(int T, Pandemy &pan, int N, short width = 800, short height = 600)
     pan.evolve();
     state = pan.GetState();
     assert(std::round(state.S + state.I + state.R) == N);
-    graph.drawGraph(state, i, T);
+    graph.drawPoint(state, i, T);
     printSIR(state, i + 1);
   }
 
-  graph.WriteTextGraph(std::to_string(N), pan_x - 3.f, height - pan_y); //Y max
-  graph.WriteTextGraph(std::to_string(T), width - pan_x, pan_y);        //X max
+  graph.WriteTextGraph({"People   " + std::to_string(N)}, pan_x - 3.f, height - pan_y); //Y max
+  graph.WriteTextGraph({std::to_string(T) + "    Days"}, width - pan_x, pan_y);        //X max
   graph.WriteTextGraph(std::to_string(N / 2), pan_x - 3.f, height / 2); //Y max / 2
   graph.WriteTextGraph(std::to_string(T / 2), width / 2, pan_y);        //Y max / 2
   window.display();
