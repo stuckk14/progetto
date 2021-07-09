@@ -5,7 +5,7 @@ inline bool operator==(State const &left, State const &right)
     return left.condition == right.condition && left.time == right.time;
 }
 
-double World::get_beta() const noexcept
+double World::getBeta() const noexcept
 {
     return beta;
 }
@@ -17,16 +17,16 @@ void World::setLockdown(bool command) noexcept
         beta *= 2.5;
 }
 
-double World::get_gamma() const noexcept
+double World::getGamma() const noexcept
 {
     return gamma;
 }
 
-double World::get_deathRate() const noexcept
+double World::getDeathRate() const noexcept
 {
     return deathRate;
 }
-int World::get_res_time() const noexcept
+int World::getResTime() const noexcept
 {
     return resTime;
 }
@@ -34,49 +34,49 @@ double World::getLockdownLimit() const noexcept
 {
     return lockdownLimit;
 }
-int World::getNVaccinati() const noexcept
+int World::getNVaccinated() const noexcept
 {
-    return nVaccinati;
+    return nVaccinated;
 }
-int World::getNRighe() const noexcept
+int World::getNRows() const noexcept
 {
-    return n_righe;
+    return nRows;
 }
 int World::getNCol() const noexcept
 {
-    return n_col;
+    return nCol;
 }
 int World::size() const noexcept
 {
-    return n_col * n_righe;
+    return nCol * nRows;
 }
 
 Condition const &World::getCondition(int r, int c) const noexcept
 {
-    if (r < 0 || c < 0 || r >= n_righe || c >= n_col)
+    if (r < 0 || c < 0 || r >= nRows || c >= nCol)
     {
         return wall;
     }
-    auto const index = r * n_col + c;
-    return m_grid[index].condition;
+    auto const index = r * nCol + c;
+    return mGrid[index].condition;
 }
 
 Condition &World::setCondition(int r, int c) noexcept
 {
-    assert(r >= 0 && r < n_righe && c >= 0 && c < n_col);
-    auto const index = r * n_col + c;
-    assert(index >= 0 && index < static_cast<int>(m_grid.size()));
-    return m_grid[index].condition;
+    assert(r >= 0 && r < nRows && c >= 0 && c < nCol);
+    auto const index = r * nCol + c;
+    assert(index >= 0 && index < static_cast<int>(mGrid.size()));
+    return mGrid[index].condition;
 }
 inline int &World::Time(int r, int c) noexcept
 {
-    auto const index = r * n_col + c;
-    return m_grid[index].time;
+    auto const index = r * nCol + c;
+    return mGrid[index].time;
 }
 
 inline bool operator==(World const &l, World const &r)
 {
-    return l.m_grid == r.m_grid;
+    return l.mGrid == r.mGrid;
 }
 
 template <Condition C>
@@ -113,12 +113,12 @@ inline bool probability(double prob)
     return exitus <= prob;
 }
 
-inline void move_port(World &current, Condition porto, int oldR, int oldC)
+inline void movePort(World &current, Condition porto, int oldR, int oldC)
 {
     std::vector<point> destCell;
     destCell.resize(200);
     int i = 0;
-    for (int r = 0; r < current.getNRighe(); ++r)
+    for (int r = 0; r < current.getNRows(); ++r)
     {
         for (int c = 0; c < current.getNCol(); ++c)
         {
@@ -148,57 +148,57 @@ inline void move_port(World &current, Condition porto, int oldR, int oldC)
     current.setCondition(oldR, oldC) = temp;
 }
 
-inline void move_cell(World &current, int day)
+inline void moveCell(World &current, int day)
 {
-    std::vector<from_to> fromTo;
+    std::vector<fromTo> fromTo;
     fromTo.reserve(10 + .8 * day);
-    int start_righe = 0, start_col = 0;
-    int n_righe = current.getNRighe(), n_col = current.getNCol();
+    int startRows = 0, startCol = 0;
+    int nRows = current.getNRows(), nCol = current.getNCol();
     char each = 1;
     if (day % 2 == 1)
     {
-        start_col = n_col - 1;
-        start_righe = n_righe - 1;
-        n_righe = -1;
-        n_col = -1;
+        startCol = nCol - 1;
+        startRows = nRows - 1;
+        nRows = -1;
+        nCol = -1;
         each = -1;
     }
-    for (int r = start_righe; r != n_righe; r += each)
+    for (int r = startRows; r != nRows; r += each)
     {
-        for (int c = start_col; c != n_col; c += each)
+        for (int c = startCol; c != nCol; c += each)
         {
-            short int empty_cells = neighbours<Condition::Empty>(current, r, c);
-            empty_cells += neighbours<Condition::Airport>(current, r, c);
-            empty_cells += neighbours<Condition::Port>(current, r, c);
-            if (current.getCondition(r, c) == Condition::Wall || empty_cells == 0 || current.getCondition(r, c) == Condition::Desert || current.getCondition(r, c) == Condition::Empty || current.getCondition(r, c) == Condition::Dead)
+            short int emptyCells = neighbours<Condition::Empty>(current, r, c);
+            emptyCells += neighbours<Condition::Airport>(current, r, c);
+            emptyCells += neighbours<Condition::Port>(current, r, c);
+            if (current.getCondition(r, c) == Condition::Wall || emptyCells == 0 || current.getCondition(r, c) == Condition::Desert || current.getCondition(r, c) == Condition::Empty || current.getCondition(r, c) == Condition::Dead)
             {
                 continue;
             }
             std::default_random_engine gen{std::random_device{}()};
-            std::uniform_int_distribution<short int> dist(0, empty_cells);
+            std::uniform_int_distribution<short int> dist(0, emptyCells);
             short int exitus = dist(gen);
             if (exitus == 0)
             {
                 continue;
             }
-            int count_empty = 0, row = -1, column = -1;
-            for (; row != 2 && count_empty != exitus; ++row)
+            int countEmpty = 0, row = -1, column = -1;
+            for (; row != 2 && countEmpty != exitus; ++row)
             {
-                for (column = -1; column != 2 && count_empty != exitus; ++column)
+                for (column = -1; column != 2 && countEmpty != exitus; ++column)
                 {
                     if (current.getCondition(r + row, c + column) == Condition::Empty || current.getCondition(r + row, c + column) == Condition::Port || current.getCondition(r + row, c + column) == Condition::Airport)
                     {
-                        ++count_empty;
+                        ++countEmpty;
                     }
-                    if (count_empty == exitus)
+                   if (countEmpty == exitus)
                         break;
                 }
-                if (count_empty == exitus)
+                if (countEmpty == exitus)
                     break;
             }
             if (current.getCondition(r + row, c + column) == Condition::Port || current.getCondition(r + row, c + column) == Condition::Airport)
             {
-                move_port(current, current.getCondition(r + row, c + column), r, c);
+                movePort(current, current.getCondition(r + row, c + column), r, c);
                 continue;
             }
 
@@ -208,21 +208,22 @@ inline void move_cell(World &current, int day)
     }
     for (int i = 0; i < (int)fromTo.size(); ++i)
     {
-        current.setCondition(fromTo[i].r_t, fromTo[i].c_t) = current.getCondition(fromTo[i].r_f, fromTo[i].c_f);
-        current.setCondition(fromTo[i].r_f, fromTo[i].c_f) = Condition::Empty;
+        current.setCondition(fromTo[i].rT, fromTo[i].cT) = current.getCondition(fromTo[i].rF, fromTo[i].cF);
+        current.setCondition(fromTo[i].rF, fromTo[i].cF) = Condition::Empty;
     }
 }
 
 void evolve(World &current, int day)
 {
-    double beta = current.get_beta(), gamma = current.get_gamma(), deathRate = current.get_deathRate();
-    int resTime = current.get_res_time();
-    int const n_righe = current.getNRighe(), n_col = current.getNCol();
-    move_cell(current, day);
+    double beta = current.getBeta(), gamma = current.getGamma(), deathRate = current.getDeathRate();
+    int resTime = current.getResTime();
+    int const nRows = current.getNRows(), nCol = current.getNCol();
+    moveCell(current, day);
     World next = current;
-    for (int r = 0; r != n_righe; ++r)
+    for (int r = 0; r != nRows; ++r)
+
     {
-        for (int c = 0; c != n_col; ++c)
+        for (int c = 0; c != nCol; ++c)
         {
             if (current.getCondition(r, c) == Condition::Dead)
                 next.setCondition(r, c) = Condition::Empty;
@@ -238,9 +239,10 @@ void evolve(World &current, int day)
             }
             else if (current.getCondition(r, c) == Condition::Susceptible)
             {
-                int n_infected = neighbours<Condition::Infected>(current, r, c);
-                double beta_bis = beta * (n_infected / 8.);
-                if (probability(beta_bis))
+                int nInfected = neighbours<Condition::Infected>(current, r, c);
+                double betaBis = beta * (nInfected / 8.);
+                if (probability(betaBis))
+
                 {
                     next.setCondition(r, c) = Condition::Infected;
                     next.Time(r, c) = 0;

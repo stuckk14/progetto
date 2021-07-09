@@ -1,7 +1,7 @@
-n_days 200
+nDays 700
 beta 0.5
 gamma 0.2
-death_rate 0.03
-lockdown_limit 0.035
-days_to_death 10
-nVaccinati 2000
+deathRate 0.03
+lockdownLimit 0.025
+daysToDeath 10
+nVaccinated 1500

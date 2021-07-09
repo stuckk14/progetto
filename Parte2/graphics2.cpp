@@ -4,15 +4,15 @@
 
 short Graphics::getPanY() const
 {
-    return pan_y;
+    return panY;
 }
 
 void Graphics::loadImage(World &pan)
 {
 
-    for (unsigned short row = 0; row < imm_height; ++row)
+    for (unsigned short row = 0; row < immHeight; ++row)
     {
-        for (unsigned short col = 0; col < imm_width; ++col)
+        for (unsigned short col = 0; col < immWidth; ++col)
         {
             if (image.getPixel(col, row).r == 255 && image.getPixel(col, row).g < 230)
                 pan.setCondition(row, col) = Condition::Port;
@@ -34,20 +34,21 @@ void Graphics::loadImage(World &pan)
 SIR Graphics::createArray(const World &pan)
 {
     unsigned short r{};
-    float lato = 1.f, spaziatura = 2.f;
-    unsigned short imm_height = image.getSize().y, imm_width = image.getSize().x;
+    float side = 1.f, spacing = 2.f;
+    unsigned short immHeight = image.getSize().y, immWidth = image.getSize().x;
     SIR state;
-    for (unsigned short row = 0; row < imm_height; ++row)
+    for (unsigned short row = 0; row < immHeight; ++row)
+
     {
         unsigned short c = 0;
-        for (unsigned short col = 0; col < imm_width; ++col)
+        for (unsigned short col = 0; col < immWidth; ++col)
         {
             c += 4;
-            int index{r * imm_width * 4 + c};
-            mappa[index].position = sf::Vector2f(col * 2 * lato + pan_x, row * 2 * lato + pan_y);
-            mappa[index + 1].position = sf::Vector2f(col * 2 * lato + pan_x, row * 2 * lato + pan_y + spaziatura);
-            mappa[index + 2].position = sf::Vector2f(col * 2 * lato + pan_x + spaziatura, row * 2 * lato + pan_y + spaziatura);
-            mappa[index + 3].position = sf::Vector2f(col * 2 * lato + pan_x + spaziatura, row * 2 * lato + pan_y);
+            int index{r * immWidth * 4 + c};
+            mappa[index].position = sf::Vector2f(col * 2 * side + panX, row * 2 * side + panY);
+            mappa[index + 1].position = sf::Vector2f(col * 2 * side + panX, row * 2 * side + panY + spacing);
+            mappa[index + 2].position = sf::Vector2f(col * 2 * side + panX + spacing, row * 2 * side + panY + spacing);
+            mappa[index + 3].position = sf::Vector2f(col * 2 * side + panX + spacing, row * 2 * side + panY);
 
             mappa[index].color = sf::Color::Black;
             mappa[index + 1].color = sf::Color::Black;
@@ -131,19 +132,19 @@ void Graphics::drawArray()
     window.clear(sf::Color::Black);
     window.draw(mappa);
 }
-void Graphics::WriteText(const std::string &string, short pos_x, short pos_y)
+void Graphics::writeText(const std::string &string, short posX, short posY)
 {
     sf::Font font;
-    if (!font.loadFromFile("../arial.ttf"))
+    if (!font.loadFromFile("../../arial.ttf"))
         std::cerr << "\n\nError loading font\n\n";
     sf::Text text;
     text.setFont(font);
     text.setCharacterSize(20);
     text.setFillColor(sf::Color::White);
     text.setString(string);
-    float text_w = text.getGlobalBounds().width;
-    float text_h = text.getGlobalBounds().height;
-    text.setPosition(pos_x - text_w / 2, (pos_y - text_h));
+    float textW = text.getGlobalBounds().width;
+    float textH = text.getGlobalBounds().height;
+    text.setPosition(posX - textW / 2, (posY - textH));
     window.draw(text);
 }
 void Graphics::chooseMouse(World &pan)
@@ -160,18 +161,18 @@ void Graphics::chooseMouse(World &pan)
                 break;
         }
         sf::Vector2f pos{sf::Mouse::getPosition(window)};
-        int pos_x = std::round((pos.x - pan_x) / 2.);
-        int pos_y = std::round((pos.y - pan_y) / 2.);
-        Condition state = pan.getCondition(pos_y, pos_x);
+        int posX = std::round((pos.x - panX) / 2.);
+        int posY = std::round((pos.y - panY) / 2.);
+        Condition state = pan.getCondition(posY, posX);
         if (state != Condition::Susceptible && state != Condition::Infected && state != Condition::Empty)
             continue;
-        char state_i = static_cast<char>(state);
-        state = static_cast<Condition>((state_i + 1) % 3);
-        pan.setCondition(pos_y, pos_x) = state;
+        char stateI = static_cast<char>(state);
+        state = static_cast<Condition>((stateI + 1) % 3);
+        pan.setCondition(posY, posX) = state;
 
         this->createArray(pan);
         this->drawArray();
-        this->WriteText("Press any key to start the simulation", width / 2, height - pan_y);
+        this->writeText("Press any key to start the simulation", width / 2, height - panY);
         window.display();
     }
 }
@@ -182,7 +183,7 @@ void Window(int duration, World &pan, sf::Image image, short width, short height
     window.clear(sf::Color::Black);
 
     Graphics graph(window, image, width, height);
-    const float pan_y = graph.getPanY();
+    const float panY = graph.getPanY();
 
     graph.loadImage(pan);
     SIR state, oldState = graph.createArray(pan);
@@ -198,27 +199,27 @@ void Window(int duration, World &pan, sf::Image image, short width, short height
     {
         //Vaccinazioni
         std::default_random_engine eng{std::random_device{}()};
-        std::uniform_int_distribution<int> dist_righe{0, oldPan.getNRighe() - 1}, dist_col{0, oldPan.getNCol() - 1};
-        int vaccinatiPerGiorno = std::round(oldPan.getNVaccinati() / 10.);
-        for (int j = 0; j != vaccinatiPerGiorno && i >= duration / 5 && i < ((duration / 5) + 10); ++j)
+        std::uniform_int_distribution<int> distRows{0, oldPan.getNRows() - 1}, distCol{0, oldPan.getNCol() - 1};
+        int vaccinatedPerDay = std::round(oldPan.getNVaccinated() / 10.);
+        int totVaccinated = 0;
+        for (int j = 0; j != vaccinatedPerDay && i >= duration / 5 && i < ((duration / 5) + 10); ++j)
         {
-            vaccinazioni = true;
-            auto r = dist_righe(eng);
-            auto c = dist_col(eng);
-            if (totVaccinati != oldState.S)
+            auto r = distRows(eng);
+            auto c = distCol(eng);
+            if (totVaccinated != state.S)
             {
                 while (pan.getCondition(r, c) != Condition::Susceptible)
                 {
-                    r = dist_righe(eng);
-                    c = dist_col(eng);
+                    r = distRows(eng);
+                    c = distCol(eng);
                 }
                 pan.setCondition(r, c) = Condition::Healed;
-                ++totVaccinati;
+                ++totVaccinated;
             }
             else
                 break;
         }
-        if(totVaccinati == pan.getNVaccinati())
+        if(totVaccinati == pan.getNVaccinated())
             vaccinazioni = false;
             
         //Lockdown
@@ -242,16 +243,13 @@ void Window(int duration, World &pan, sf::Image image, short width, short height
         deaths += state.D;
         std::string dati{"Day: "};
         dati = dati + std::to_string(i) + "   Susceptibles: " + std::to_string(state.S) + "   Infected: " + std::to_string(state.I) + "   Healed: " + std::to_string(state.H) + "   Dead: " + std::to_string(deaths);
-        graph.WriteText(dati, width / 2, height - pan_y);
+        graph.WriteText(dati, width / 2, height - panY);
         dati = "";
         if(lockdown)
             dati += "Lockdown in atto   ";
         if(vaccinazioni)
             dati += "Vaccinazioni in corso";
-        graph.WriteText(dati, width / 2, height - pan_y - 25);
-
-        
-        
+        graph.WriteText(dati, width / 2, height - panY - 25);
 
         window.display();
         second.join();

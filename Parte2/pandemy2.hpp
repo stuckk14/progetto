@@ -17,9 +17,9 @@ enum class Condition : char
   Wall,
   Booked
 };
-struct from_to
+struct fromTo
 {
-  int r_f, c_f, r_t, c_t;
+  int rF, cF, rT, cT;
 };
 struct point
 {
@@ -37,32 +37,31 @@ bool operator==(State const &, State const &);
 class World
 {
   using Grid = std::vector<State>;
-  int n_righe, n_col;
-  Grid m_grid;
+  int nRows, nCol;
+  Grid mGrid;
   double beta = 0., gamma = 0., deathRate = 0., lockdownLimit = 1.;
-  int resTime = 0, nVaccinati = 0;
+  int resTime = 0, nVaccinated = 0;
 
 public:
-  World(int n_righe_in, int n_col_in, double beta_, double gamma_, double deathRate_in, double ld_in, int resTime_in, int vaccinati_in) : n_righe(n_righe_in), n_col(n_col_in), m_grid((n_righe * n_col), {Condition::Susceptible, 0}), beta{beta_}, gamma{gamma_},
-                                                                                                                                          deathRate{deathRate_in}, lockdownLimit{ld_in}, resTime{resTime_in}, nVaccinati{vaccinati_in}
+  World(int nRowsIn, int nColIn, double beta_, double gamma_, double deathRateIn, double ldIn, int resTimeIn, int vaccinatedIn) : nRows(nRowsIn), nCol(nColIn), mGrid((nRows * nCol), {Condition::Susceptible, 0}), beta{beta_}, gamma{gamma_},
+                                                                                                                                          deathRate{deathRateIn}, lockdownLimit{ldIn}, resTime{resTimeIn}, nVaccinated{vaccinatedIn}
   {
-    assert(n_righe > 0 && n_col > 0);
+    assert(nRows > 0 && nCol > 0);
   }
 
-  double get_beta() const noexcept;
+  double getBeta() const noexcept;
   void setLockdown(bool) noexcept;
-  double get_gamma() const noexcept;
-  double get_deathRate() const noexcept;
-  int get_res_time() const noexcept;
+  double getGamma() const noexcept;
+  double getDeathRate() const noexcept;
+  int getResTime() const noexcept;
   double getLockdownLimit() const noexcept;
-  int getNVaccinati() const noexcept;
-  int getNRighe() const noexcept;
+  int getNVaccinated() const noexcept;
+  int getNRows() const noexcept;
   int getNCol() const noexcept;
   int size() const noexcept;
   Condition const &getCondition(int, int) const noexcept;
   Condition &setCondition(int, int) noexcept;
   int &Time(int, int) noexcept;
-//  int const &Time(int, int) const noexcept;
   friend bool operator==(World const&, World const&);
 };
 
@@ -72,9 +71,9 @@ int neighbours(World const &, int, int);
 
 bool probability(double);
 
-void move_port(World &, Condition , int, int);
+void movePort(World &, Condition , int, int);
 
-void move_cell(World &, int);
+void moveCell(World &, int);
 
 void evolve(World &, int);
 #endif

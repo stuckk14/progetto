@@ -13,23 +13,23 @@ class Graphics
   sf::RenderWindow &window;
   sf::VertexArray mappa;
   sf::Image image;
-  short imm_width, imm_height, width, height;
-  float pan_x, pan_y, width_p, height_p, pixel_ratio;
+  short immWidth, immHeight, width, height;
+  float panX, panY, widthP, heightP, pixelRatio;
 
 public:
-  Graphics(sf::RenderWindow &win_in, sf::Image &image_in, short win_width, short win_height) : window{win_in}, image{image_in}, width{win_width}, height{win_height}
+  Graphics(sf::RenderWindow &winIn, sf::Image &imageIn, short winWidth, short winHeight) : window{winIn}, image{imageIn}, width{winWidth}, height{winHeight}
   {
-    imm_width = image.getSize().x;
-    imm_height = image.getSize().y;
-    mappa.resize(imm_height * imm_width * 8);
-    pan_x = std::abs(imm_width * 2 - win_width) / 2, pan_y = std::abs(imm_height * 2 - win_height) / 2;
+    immWidth = image.getSize().x;
+    immHeight = image.getSize().y;
+    mappa.resize(immHeight * immWidth * 8);
+    panX = std::abs(immWidth * 2 - winWidth) / 2, panY = std::abs(immHeight * 2 - winHeight) / 2;
+
   }
   short getPanY() const;
-
   void loadImage(World &);
   SIR createArray(const World &);
   void drawArray();
-  void WriteText(const std::string &, short, short);
+  void writeText(const std::string &, short, short);
   void chooseMouse(World &);
 };
 
