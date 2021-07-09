@@ -243,13 +243,13 @@ void Window(int duration, World &pan, sf::Image image, short width, short height
         deaths += state.D;
         std::string dati{"Day: "};
         dati = dati + std::to_string(i) + "   Susceptibles: " + std::to_string(state.S) + "   Infected: " + std::to_string(state.I) + "   Healed: " + std::to_string(state.H) + "   Dead: " + std::to_string(deaths);
-        graph.WriteText(dati, width / 2, height - panY);
+        graph.writeText(dati, width / 2, height - panY);
         dati = "";
         if(lockdown)
             dati += "Lockdown in atto   ";
         if(vaccinazioni)
             dati += "Vaccinazioni in corso";
-        graph.WriteText(dati, width / 2, height - panY - 25);
+        graph.writeText(dati, width / 2, height - panY - 25);
 
         window.display();
         second.join();
