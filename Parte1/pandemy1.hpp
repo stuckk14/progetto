@@ -14,14 +14,13 @@ class Pandemy
     Population pop;
 
 public:
-    Pandemy(int N_in, int I, int T_in, double beta_in, double gamma_in) : N{N_in}, T{T_in}, gamma{gamma_in}, beta{beta_in},
-                                                                          pop{static_cast<double>(N_in - I), static_cast<double>(I), 0} {}
+    Pandemy(int NIn, int I, int TIn, double betaIn, double gammaIn) : N{NIn}, T{TIn}, gamma{gammaIn}, beta{betaIn},
+                                                                          pop{static_cast<double>(NIn - I), static_cast<double>(I), 0} {}
 
     bool invariant();
 
-    Population GetState() const;
+    Population getState() const;
 
     void evolve();
-    //result.push_back(pop);
 };
 #endif

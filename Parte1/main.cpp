@@ -4,11 +4,11 @@
 #include "pandemy1.hpp"
 #include "graphics1.hpp"
 
-bool controllo(double min, double max, double val)
+bool control(double min, double max, double val)
 {
     return val <= max && val >= min;
 }
-bool controllo(int min, int max, int val)
+bool control(int min, int max, int val)
 {
     return val <= max && val >= min;
 }
@@ -19,32 +19,32 @@ int main()
         std::cout << "Inserire il numero di elementi della popolazione" << '\n';
         int N;
         std::cin >> N;
-        if (!controllo(0, 2147483647, N))
+        if (!control(0, 2147483647, N))
         {
             throw std::runtime_error("Il numero di elementi della popolazione e' fuori dal range\n");
         }
         std::cout << "Inserire il numero di infetti iniziali\n";
         int I;
         std::cin >> I;
-        if (!controllo(0, N, I))
+        if (!control(0, N, I))
         {
             throw std::runtime_error("Il numero di infetti iniziali e' fuori dal range\n");
         }
         std::cout << "Inserire la durata in giorni della simulazione" << '\n';
         int T;
         std::cin >> T;
-        if (!controllo(0, 10000, T))
+        if (!control(0, 10000, T))
         {
             throw std::runtime_error("La durata della simulazione e' fuori dal range\n");
         }
-        std::cout << "Inserire i parametri beta e gamma relativi alla simulazione" << '\n';
+        std::cout << "Inserire i parametri beta e gamma relativi alla simulazione\n";
         double beta, gamma;
         std::cin >> beta >> gamma;
-        if (!controllo(0., 1., beta))
+        if (!control(0., 1., beta))
         {
             throw std::runtime_error("Beta e' fuori dal range\n");
         }
-        if (!controllo(0., 1., gamma))
+        if (!control(0., 1., gamma))
         {
             throw std::runtime_error("Gamma e' fuori dal range\n");
         }
@@ -52,27 +52,16 @@ int main()
         short width, height;
         std::cin >> width >> height;
 
-        if (!controllo(0, 32767, width))
+        if (!control(0, 32767, width))
         {
-            std::cerr << "La larghezza della finestra e' fuori dal range";
-            return 1;
+            throw std::runtime_error("La larghezza della finestra e' fuori dal range");
         }
-        if (!controllo(0, 32767, height))
+        if (!control(0, 32767, height))
         {
-            std::cerr << "L'altezza della finestra e' fuori dal range";
-            return 1;
+            throw std::runtime_error("L'altezza della finestra e' fuori dal range");
         }
 
-        std::cout << '\n'
-                  << "Tabella riassuntiva" << '\n'
-                  << std::setw(45) << "STATUS:\n\n";
         Pandemy pan{N, I, T, beta, gamma};
-
-        std::cout << "DAY: " << std::setw(15)
-                  << std::setw(21) << "SUSCEPTIBLES:"
-                  << std::setw(18) << "INFECTED:"
-                  << std::setw(18) << "REMOVED:" << "\t\tTOTAL: " << N << '\n'
-                  << "==========================================================================================================" << '\n';
         window(T, pan, N, width, height);
     }
     catch (std::runtime_error &e)

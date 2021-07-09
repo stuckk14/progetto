@@ -10,7 +10,7 @@ TEST_CASE("Test SIR 1")
     Pandemy pan {popTot, initialInfected, T, beta, gamma};
     for (int i = 0; i < T; ++i)
         pan.evolve();
-    state = pan.GetState();
+    state = pan.getState();
     CHECK(state.I == doctest::Approx(22).epsilon(.03));
     CHECK (state.R == doctest::Approx(667).epsilon(.01));
     CHECK (state.S == doctest::Approx(311).epsilon(.01));
@@ -23,7 +23,7 @@ TEST_CASE ("Test SIR 2")
     Pandemy pan {popTot, initialInfected, T, beta, gamma};
     for (int i = 0; i < T; ++i)
         pan.evolve();
-    state = pan.GetState();
+    state = pan.getState();
     CHECK(state.I == doctest::Approx(0).epsilon(.01));
     CHECK (state.R == doctest::Approx(299).epsilon(.01));
     CHECK (state.S == doctest::Approx(1).epsilon(.05));
@@ -36,7 +36,7 @@ TEST_CASE ("Test SIR 3")
     Pandemy pan {popTot, initialInfected, T, beta, gamma};
     for (int i = 0; i < T; ++i)
         pan.evolve();
-    state = pan.GetState();
+    state = pan.getState();
     CHECK(state.I == doctest::Approx(0).epsilon(.01));
     CHECK (state.R == doctest::Approx(14221230).epsilon(.000001));
     CHECK (state.S == doctest::Approx(778767).epsilon(.0001));

@@ -16,14 +16,14 @@ class Graphics
 {
   sf::RenderWindow &window;
   short width, height;
-  float pan_x, pan_y;
+  float panX, panY;
 
 public:
-  Graphics(sf::RenderWindow &win_in, short width_in, short height_in, float pan_x_in, float pan_y_in) : window{win_in}, width{width_in}, height{height_in}, pan_x{pan_x_in}, pan_y{pan_y_in} {}
+  Graphics(sf::RenderWindow &winIn, short widthIn, short heightIn, float panXIn, float panYIn) : window{winIn}, width{widthIn}, height{heightIn}, panX{panXIn}, panY{panYIn} {}
 
   void drawAxis();
-  void WriteTextGraph(const std::string &string, short pos_x, short pos_y);
-  void drawPoint(Population &state, const int i, const int duration);
+  void writeTextGraph(const std::string &string, short posX, short posY);
+  void drawGraph(Population &state, const int i, const int duration);
 };
 
 
