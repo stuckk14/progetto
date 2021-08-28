@@ -3,8 +3,8 @@
 #include <stdexcept>
 #include <vector>
 
-#include "graphics1.hpp"
-#include "pandemy1.hpp"
+#include "graphics.hpp"
+#include "pandemy.hpp"
 
 template <class T>
 bool control(T min, T max, T val) {

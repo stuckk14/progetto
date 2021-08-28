@@ -1,4 +1,4 @@
-#include "graphics2.hpp"
+#include "graphics.hpp"
 
 #include <iostream>
 #include <thread>

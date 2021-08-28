@@ -1,8 +1,8 @@
 ADD_EXECUTABLE(parte1 main.cpp)
 ADD_EXECUTABLE(test test.cpp)
 
-ADD_LIBRARY(Graphics1 STATIC graphics1.cpp)
-ADD_LIBRARY(Pandemy1 STATIC pandemy1.cpp)
+ADD_LIBRARY(Graphics1 STATIC graphics.cpp)
+ADD_LIBRARY(Pandemy1 STATIC pandemy.cpp)
 
 TARGET_LINK_LIBRARIES(parte1 Graphics1 Pandemy1 sfml-system sfml-graphics)
 SET_TARGET_PROPERTIES(parte1 PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/Parte1/bin")

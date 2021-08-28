@@ -1,6 +1,6 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest.h"
-#include "pandemy1.hpp"
+#include "pandemy.hpp"
 
 TEST_CASE("Test SIR 1") {
   Population state;

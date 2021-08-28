@@ -1,4 +1,4 @@
-#include "graphics1.hpp"
+#include "graphics.hpp"
 
 #include <array>
 void Graphics::drawAxis() {

@@ -1,4 +1,4 @@
-#include "pandemy1.hpp"
+#include "pandemy.hpp"
 
 #include <cassert>
 #include <cmath>

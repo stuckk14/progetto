@@ -1,4 +1,4 @@
-#include "pandemy2.hpp"
+#include "pandemy.hpp"
 constexpr Condition wall = Condition::Wall;
 inline bool operator==(State const &left, State const &right) {
   return left.condition == right.condition && left.time == right.time;
@@ -160,7 +160,7 @@ inline void moveCell(World &current, int day) {
       fromTo.push_back({r, c, r + row, c + column});
     }
   }
-  // std::foreach(fromTo.begin(), fromTo.end(), );
+  
   for (auto const &point : fromTo) {
     current.condition(point.rT, point.cT) =
         wToConst(current).condition(point.rF, point.cF);

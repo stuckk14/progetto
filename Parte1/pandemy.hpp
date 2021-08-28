@@ -1,5 +1,5 @@
-#ifndef PANDEMY1_HPP
-#define PANDEMY1_HPP
+#ifndef PANDEMY_HPP
+#define PANDEMY_HPP
 
 struct Population {
   double S{}, I{}, R{};

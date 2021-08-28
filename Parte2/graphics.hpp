@@ -4,7 +4,7 @@
 #include <cmath>
 #include <vector>
 
-#include "pandemy2.hpp"
+#include "pandemy.hpp"
 
 struct SIR {
   int S{}, I{}, H{}, D{};

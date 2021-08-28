@@ -1,5 +1,5 @@
-#ifndef GRAPHICS1_HPP
-#define GRAPHICS1_HPP
+#ifndef GRAPHICS_HPP
+#define GRAPHICS_HPP
 #include <SFML/Graphics.hpp>
 #include <cassert>
 #include <cmath>
@@ -8,7 +8,7 @@
 #include <thread>
 #include <vector>
 
-#include "pandemy1.hpp"
+#include "pandemy.hpp"
 
 class Graphics {
   sf::RenderWindow &window;

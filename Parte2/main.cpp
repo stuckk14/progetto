@@ -5,8 +5,8 @@
 #include <random>
 #include <stdexcept>
 
-#include "graphics2.hpp"
-#include "pandemy2.hpp"
+#include "graphics.hpp"
+#include "pandemy.hpp"
 
 template <class T>
 bool control(T min, T max, T val) {
